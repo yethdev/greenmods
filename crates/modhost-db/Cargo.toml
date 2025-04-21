@@ -23,3 +23,6 @@ utoipa.workspace = true
 [target.'cfg(windows)'.dependencies]
 openssl-sys.workspace = true
 pq-sys.workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["pq-sys", "openssl-sys"]

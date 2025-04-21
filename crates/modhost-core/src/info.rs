@@ -173,7 +173,7 @@ pub fn get_sys_info() -> SysInfo {
         free_mem: sys.free_memory(),
         free_swap: sys.free_swap(),
         cpu_arch: System::cpu_arch(),
-        phys_core_count: sys.physical_core_count(),
+        phys_core_count: System::physical_core_count(),
         distro_id: System::distribution_id(),
         sys_name: System::name(),
         kernel: System::kernel_version(),

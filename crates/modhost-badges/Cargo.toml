@@ -9,7 +9,6 @@ authors.workspace = true
 readme.workspace = true
 
 [dependencies]
-anyhow.workspace = true
 axum.workspace = true
 modhost-core = { workspace = true, features = ["anyhow", "axum", "rsbadges", "serde-json", "utoipa"] }
 reqwest.workspace = true

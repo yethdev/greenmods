@@ -9,8 +9,6 @@ authors.workspace = true
 readme.workspace = true
 
 [dependencies]
-anyhow.workspace = true
-async-trait.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
 itertools.workspace = true

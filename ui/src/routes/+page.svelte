@@ -5,7 +5,7 @@
     import { siteConfig } from "$lib/config";
     import Icon from "@iconify/svelte";
 
-    const addCharDelay = 150;
+    const addCharDelay = 100;
 
     let tagline = siteConfig.tagline;
     let adding = $state(true);
@@ -34,7 +34,7 @@
     };
 
     onMount(() => {
-        scheduleAddChar();
+        document.addEventListener("ready", scheduleAddChar);
     });
 
     locale.subscribe(() => {

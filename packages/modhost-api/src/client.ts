@@ -92,9 +92,14 @@ export class Client {
         body?: Blob | FormData | object | string,
     ): Promise<T | ErrorResponse> {
         try {
-            return (await (
-                await this._fetch(requiresAuth, method, path, headers, body)
-            ).json()) as T;
+            const res = await this._fetch(requiresAuth, method, path, headers, body);
+            const text = await res.text();
+
+            try {
+                return JSON.parse(text) as T;
+            } catch (err: unknown) {
+                return new ErrorResponse(text);
+            }
         } catch (err: unknown) {
             return new ErrorResponse(err);
         }

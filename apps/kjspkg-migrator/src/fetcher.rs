@@ -71,7 +71,7 @@ pub async fn get_manifest(
 
     match client
         .repos(owner, repo)
-        .raw_file(branch.clone(), path)
+        .raw_file(branch.clone(), &path)
         .await
     {
         Ok(resp) => {
@@ -80,8 +80,8 @@ pub async fn get_manifest(
                 let body = String::from_utf8(body.to_vec())?;
 
                 warn!(
-                    "Could not fetch '.kjspkg' from branch '{}' in repo '{}/{}': {}",
-                    branch, owner, repo, body
+                    "Could not fetch '{}' from branch '{}' in repo '{}/{}': {}",
+                    path, branch, owner, repo, body
                 );
 
                 Ok(None)

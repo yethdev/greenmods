@@ -108,7 +108,7 @@ pub async fn fetch_stats(
 
     while let Some(obj) = stream.next().await {
         if let Ok(obj) = obj {
-            projects_size_bytes += obj.size;
+            projects_size_bytes += obj.size as usize;
         }
     }
 
@@ -117,7 +117,7 @@ pub async fn fetch_stats(
 
     while let Some(obj) = stream.next().await {
         if let Ok(obj) = obj {
-            gallery_size_bytes += obj.size;
+            gallery_size_bytes += obj.size as usize;
         }
     }
 

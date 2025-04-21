@@ -13,9 +13,6 @@ repository.workspace = true
 glob = { workspace = true, optional = true }
 include_dir_macros.workspace = true
 
-[dev-dependencies]
-tempfile.workspace = true
-
 [features]
 default = []
 nightly = ["include_dir_macros/nightly"]

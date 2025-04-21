@@ -59,7 +59,7 @@
             $editSaving = false;
 
             toasts.trigger({
-                message: `Error creating your project: ${data} (${data.cause})`,
+                message: `Error creating your project: ${data.cause}`,
                 hideDismiss: true,
                 timeout: 5000,
                 background: "variant-filled-error",

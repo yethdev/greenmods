@@ -159,15 +159,10 @@ pub enum AppError {
     #[cfg(feature = "rsbadges")]
     Badge(#[from] rsbadges::BadgeError),
 
-    /// An error with OpenTelemetry logging.
-    #[error(transparent)]
-    #[cfg(feature = "logging")]
-    OpenTelemetryLog(#[from] opentelemetry_sdk::logs::LogError),
-
     /// An error with OpenTelemetry.
     #[error(transparent)]
     #[cfg(feature = "logging")]
-    OpenTelemetry(#[from] opentelemetry_sdk::error::Error),
+    OpenTelemetry(#[from] opentelemetry_sdk::error::OTelSdkError),
 
     /// An error with OpenTelemetry metrics.
     #[error(transparent)]
@@ -177,12 +172,12 @@ pub enum AppError {
     /// An error with the OpenTelemetry exporter.
     #[error(transparent)]
     #[cfg(feature = "logging")]
-    OpenTelemetryExporter(#[from] opentelemetry_otlp::Error),
+    OpenTelemetryExporter(#[from] opentelemetry_otlp::ExporterBuildError),
 
     /// An error with OpenTelemetry tracing.
     #[error(transparent)]
     #[cfg(feature = "logging")]
-    OpenTelemetryTrace(#[from] opentelemetry::trace::TraceError),
+    OpenTelemetryTrace(#[from] opentelemetry_sdk::trace::TraceError),
 
     /// An error receiving a message from a crossbeam channel occured.
     #[error(transparent)]

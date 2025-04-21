@@ -10,6 +10,7 @@
     import { onMount } from "svelte";
 
     let uptime = $state<Duration>(Duration.fromObject({}));
+    let sysUptime = $state<Duration>(Duration.fromObject({}));
     let stopLoop = true;
     let ws: AdminStatsSocketWrapper | undefined;
     let globalStats = $state<AdminStats | undefined>(undefined);
@@ -26,6 +27,8 @@
 
             uptime = Duration.fromObject({ seconds: data.uptime_secs });
             uptime = uptime.rescale();
+            sysUptime = Duration.fromObject({ seconds: data.sys_info.uptime });
+            sysUptime = sysUptime.rescale();
         });
     });
 
@@ -45,6 +48,8 @@
 
         uptime = Duration.fromObject({ seconds: stats.uptime_secs });
         uptime = uptime.rescale();
+        sysUptime = Duration.fromObject({ seconds: stats.sys_info.uptime });
+        sysUptime = sysUptime.rescale();
 
         if (!stopLoop) setTimeout(addSecondLoop, 1000);
 
@@ -54,6 +59,8 @@
     const addSecondLoop = () => {
         uptime = uptime.plus({ seconds: 1 });
         uptime = uptime.rescale();
+        sysUptime = sysUptime.plus({ seconds: 1 });
+        sysUptime = sysUptime.rescale();
 
         if (!stopLoop) setTimeout(addSecondLoop, 1000);
     };
@@ -103,7 +110,7 @@
             <div class="card hover:bg-surface-600 cursor-pointer space-y-2 p-4 transition-all">
                 <p class="flex flex-row items-center justify-start text-sm font-bold">
                     <Icon icon="tabler:versions" width="20" class="mr-2" />
-                    Versions
+                    Project Versions
                 </p>
 
                 <p>{globalStats?.versions}</p>
@@ -181,6 +188,15 @@
         </p>
 
         <div class="grid h-full w-full grid-cols-3 gap-2">
+            <div class="card hover:bg-surface-600 cursor-pointer space-y-2 p-4 transition-all">
+                <p class="flex flex-row items-center justify-start text-sm font-bold">
+                    <Icon icon="tabler:clock" width="20" class="mr-2" />
+                    Uptime
+                </p>
+
+                <p>{sysUptime.toHuman()}</p>
+            </div>
+
             <div class="card hover:bg-surface-600 cursor-pointer space-y-2 p-4 transition-all">
                 <p class="flex flex-row items-center justify-start text-sm font-bold">
                     <Icon icon="tabler:cpu-2" width="20" class="mr-2" />

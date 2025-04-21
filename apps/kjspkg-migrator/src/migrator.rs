@@ -40,9 +40,7 @@ pub async fn run() -> Result<()> {
     let mut added_users = HashMap::new();
 
     for (id, repo) in packages.into_iter().progress() {
-        let mut split = repo.split(&['/'][..]);
-        let owner = split.next().unwrap();
-        let mut repo = split.next().unwrap();
+        let (owner, mut repo) = repo.split_once('/').unwrap();
         let mut branch: Option<String> = None;
         let mut dir: Option<String> = None;
 

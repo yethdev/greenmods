@@ -6,10 +6,9 @@ use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, MetricExporter, SpanExporter};
 use opentelemetry_sdk::{
     Resource,
-    logs::LoggerProvider,
+    logs::SdkLoggerProvider,
     metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider, Temporality},
-    runtime,
-    trace::{RandomIdGenerator, Sampler, TracerProvider},
+    trace::{RandomIdGenerator, Sampler, SdkTracerProvider},
 };
 use std::time::Duration;
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
@@ -33,12 +32,12 @@ pub fn from_log_level(level: log::LevelFilter) -> LevelFilter {
 /// Construct the MeterProvider for MetricsLayer
 pub fn init_meter_provider(resource: Resource) -> SdkMeterProvider {
     let exporter = MetricExporter::builder()
-        .with_tonic()
+        .with_http()
         .with_temporality(Temporality::default())
         .build()
         .unwrap();
 
-    let reader = PeriodicReader::builder(exporter, runtime::Tokio)
+    let reader = PeriodicReader::builder(exporter)
         .with_interval(Duration::from_secs(30))
         .build();
 
@@ -53,10 +52,10 @@ pub fn init_meter_provider(resource: Resource) -> SdkMeterProvider {
 }
 
 /// Construct the TracerProvider for OpenTelemetryLayer
-pub fn init_tracer_provider(resource: Resource) -> TracerProvider {
-    let exporter = SpanExporter::builder().with_tonic().build().unwrap();
+pub fn init_tracer_provider(resource: Resource) -> SdkTracerProvider {
+    let exporter = SpanExporter::builder().with_http().build().unwrap();
 
-    TracerProvider::builder()
+    SdkTracerProvider::builder()
         // Customize sampling strategy
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
             1.0,
@@ -64,15 +63,15 @@ pub fn init_tracer_provider(resource: Resource) -> TracerProvider {
         // If export trace to AWS X-Ray, you can use XrayIdGenerator
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(resource)
-        .with_batch_exporter(exporter, runtime::Tokio)
+        .with_batch_exporter(exporter)
         .build()
 }
 
 /// A structure holding the OpenTelemetry providers that need to be dropped.
 pub struct OtelGuard {
-    tracer_provider: TracerProvider,
+    tracer_provider: SdkTracerProvider,
     meter_provider: SdkMeterProvider,
-    logger_provider: LoggerProvider,
+    logger_provider: SdkLoggerProvider,
 }
 
 /// Initializes the file logger.
@@ -88,15 +87,17 @@ pub fn init_logger(service_name: impl AsRef<str>, verbosity: LevelFilter) -> Res
     filter = filter.add_directive("tungstenite=warn".parse().unwrap());
     filter = filter.add_directive("arboard=warn".parse().unwrap());
 
-    let log_exporter = LogExporter::builder().with_tonic().build()?;
+    let log_exporter = LogExporter::builder().with_http().build()?;
 
-    let resource = Resource::new(vec![KeyValue::new(
-        "service.name",
-        service_name.as_ref().to_string(),
-    )]);
+    let resource = Resource::builder()
+        .with_attributes(vec![KeyValue::new(
+            "service.name",
+            service_name.as_ref().to_string(),
+        )])
+        .build();
 
-    let logger_provider = LoggerProvider::builder()
-        .with_batch_exporter(log_exporter, runtime::Tokio)
+    let logger_provider = SdkLoggerProvider::builder()
+        .with_batch_exporter(log_exporter)
         .with_resource(resource.clone())
         .build();
 
