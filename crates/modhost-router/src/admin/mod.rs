@@ -26,6 +26,8 @@ pub fn router(state: AppState) -> Router<AppState> {
         .route("/users/{id}", get(users::get::get_handler))
         .route("/users/{id}", delete(users::delete::delete_handler))
         .route("/stats/ws", get(stats_ws::stats_socket_handler))
+        .route("/projects/list", get(projects::list::list_handler))
+        .route("/projects/{id}", delete(projects::delete::delete_handler))
         .with_state(state)
 }
 
@@ -41,5 +43,7 @@ pub fn router(state: AppState) -> Router<AppState> {
     users::get::get_handler,
     users::delete::delete_handler,
     stats_ws::stats_socket_handler,
+    projects::list::list_handler,
+    projects::delete::delete_handler,
 ))]
 pub struct AdminApi;

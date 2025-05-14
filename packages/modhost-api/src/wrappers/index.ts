@@ -7,6 +7,7 @@ import { UserWrapper } from "./user";
 
 export * from "./admin";
 export * from "./admin-user";
+export * from "./admin-project";
 export * from "./authors";
 export * from "./gallery";
 export * from "./project";

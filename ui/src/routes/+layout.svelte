@@ -31,6 +31,7 @@
     import { updateUser, userPreferencesStore } from "$lib/user";
     import { initMeta } from "$lib/meta";
     import Popups from "$components/ui/Popups.svelte";
+    import ConfirmDeleteGenericModal from "$components/modals/ConfirmDeleteGenericModal.svelte";
 
     const { data, children }: { data: any; children: Snippet } = $props();
     let navigating = $state(false);
@@ -39,6 +40,7 @@
         confirmDelete: { ref: ConfirmDeleteModal },
         confirmDeleteImage: { ref: ConfirmDeleteImageModal },
         confirmDeleteVersion: { ref: ConfirmDeleteVersionModal },
+        confirmDeleteGeneric: { ref: ConfirmDeleteGenericModal },
         imageView: { ref: ImageViewModal },
     };
 

@@ -21,6 +21,13 @@ impl Default for AdminConfig {
     }
 }
 
+impl AdminConfig {
+    /// Get the formatted stats interval for pkl.
+    pub fn fmt_stats_interval(&self) -> String {
+        format!("{}.s", self.stats_interval.as_secs())
+    }
+}
+
 /// Serialize a duration as a human-readable format.
 pub fn serialize_duration<S: Serializer>(val: &Duration, ser: S) -> Result<S::Ok, S::Error> {
     ser.serialize_str(&val.human_format())

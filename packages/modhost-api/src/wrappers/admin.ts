@@ -1,4 +1,5 @@
 import type { Client } from "../client";
+import { AdminProjectWrapper } from "./admin-project";
 import { AdminUserWrapper } from "./admin-user";
 import { AdminStatsSocketWrapper } from "./stats-socket";
 
@@ -29,8 +30,16 @@ export class AdminWrapper {
         return this._client.adminGetAllUsers();
     }
 
+    public allProjects() {
+        return this._client.adminGetAllProjects();
+    }
+
     public user(user: string | number) {
         return new AdminUserWrapper(this._client, user);
+    }
+
+    public project(project: string | number) {
+        return new AdminProjectWrapper(this._client, project);
     }
 
     public statsSocket(host: string, proto = "wss") {

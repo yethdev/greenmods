@@ -349,15 +349,23 @@ export class Client {
     }
 
     public async adminGetAllUsers() {
-        return await this._jsonFetch<User[]>(true, "GET", "/users/list");
+        return await this._jsonFetch<User[]>(true, "GET", "/admin/users/list");
+    }
+
+    public async adminGetAllProjects() {
+        return await this._jsonFetch<FullProject[]>(true, "GET", "/admin/projects/list");
     }
 
     public async adminGetUser(user: string | number) {
-        return await this._jsonFetch<User>(true, "GET", `/users/${user}`);
+        return await this._jsonFetch<User>(true, "GET", `/admin/users/${user}`);
     }
 
     public async adminDeleteUser(user: string | number) {
-        return await this._jsonFetch<User>(true, "DELETE", `/users/${user}`);
+        return await this._jsonFetch<User>(true, "DELETE", `/admin/users/${user}`);
+    }
+
+    public async adminDeleteProject(project: string | number) {
+        return await this._fetch(true, "DELETE", `/admin/projects/${project}`);
     }
 
     public async listAdmins() {

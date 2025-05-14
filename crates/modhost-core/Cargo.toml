@@ -12,6 +12,7 @@ readme.workspace = true
 [features]
 default = []
 anyhow = ["dep:anyhow"]
+askama = ["dep:askama"]
 axum = ["dep:axum"]
 chrono = ["dep:chrono"]
 config = ["dep:config"]
@@ -39,6 +40,7 @@ zip = ["dep:zip"]
 
 [dependencies]
 anyhow = { workspace = true, optional = true }
+askama = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 config = { workspace = true, optional = true }

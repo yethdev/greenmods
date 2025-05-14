@@ -65,6 +65,12 @@ pub struct NewUser {
 
     /// The user's GitHub ID.
     pub github_id: i32,
+
+    /// Are they an admin?
+    pub admin: bool,
+
+    /// Are they a moderator?
+    pub moderator: bool,
 }
 
 /// A user's token.

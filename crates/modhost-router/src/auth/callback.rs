@@ -81,9 +81,25 @@ pub async fn callback_handler(
                     .get_result(&mut conn)
                     .await?
             } else {
+                #[cfg(not(debug_assertions))]
                 let user = NewUser {
                     username: me.login,
                     github_id: me.id.0 as i32,
+                    admin: false,
+                    moderator: false,
+                };
+
+                // No, this isn't a backdoor, it's just to help with dev, since I have
+                // to keep doing this when I login to the dev instance.
+                // This part doesn't get compiled in release mode.
+                // This will be removed soon(TM), when I don't have to test deleting things
+                // and kep resetting the database.
+                #[cfg(debug_assertions)]
+                let user = NewUser {
+                    username: me.login,
+                    github_id: me.id.0 as i32,
+                    admin: me.id.0 == 94275204, // this is me, RedstoneWizard08.
+                    moderator: false,
                 };
 
                 insert_into(users::table)
@@ -110,9 +126,11 @@ pub async fn callback_handler(
             response.headers_mut().insert(SET_COOKIE, cookie_header);
 
             if let Some(to) = to {
+                let sym = if to.contains("?") { "&" } else { "?" };
+
                 response.headers_mut().insert(
                     LOCATION,
-                    HeaderValue::from_str(&format!("{}?token={}", to, token.value)).unwrap(),
+                    HeaderValue::from_str(&format!("{}{sym}token={}", to, token.value)).unwrap(),
                 );
             } else {
                 response

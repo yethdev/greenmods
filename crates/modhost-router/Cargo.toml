@@ -16,6 +16,7 @@ diesel.workspace = true
 diesel-async.workspace = true
 futures.workspace = true
 imghdr.workspace = true
+itertools.workspace = true
 jsglue.workspace = true
 modhost-auth.workspace = true
 modhost-badges.workspace = true

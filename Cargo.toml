@@ -12,6 +12,7 @@ readme = "README.md"
 
 [workspace.dependencies]
 anyhow = "1.0.98"
+askama = "0.14.0"
 axum = { version = "0.8.3", features = ["macros", "multipart", "ws"] }
 axum-core = "0.5.2"
 axum-extra = { version = "0.10.1", features = ["cookie", "typed-header"] }

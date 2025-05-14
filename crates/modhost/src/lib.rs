@@ -5,14 +5,14 @@
 extern crate tracing;
 
 pub use modhost_core::{Result, logger::*};
+pub use modhost_config::get_config;
 pub use modhost_server_core::{loader, loaders, models::*, tag, tags};
 
 use axum::{Router, body::Bytes, extract::connect_info::IntoMakeServiceWithConnectInfo, serve};
 use jsglue::{glue::Glue, util::is_debug};
-use modhost_config::{AppConfig, get_config};
+use modhost_config::AppConfig;
 use modhost_db::{DbPool, create_connection, run_migrations};
 use modhost_router::{create_api_spec, create_router};
-use modhost_search::MeiliProject;
 use modhost_server_core::{glue::make_glue, state::AppState, worker::run_worker};
 use std::net::{IpAddr, SocketAddr};
 use tokio::{join, net::TcpListener, task::JoinHandle};
@@ -73,11 +73,10 @@ impl ModHost {
         run_migrations(&pool).await?;
         state.search.ensure_setup().await?;
 
-        let index = state.search.projects();
+        info!("Indexing projects...");
 
-        if index.get_documents::<MeiliProject>().await?.total == 0 {
-            state.search.index_projects(&mut pool.get().await?).await?;
-        }
+        // We should run this on startup, it ensures everything gets indexed if it was missed.
+        state.search.index_projects(&mut pool.get().await?).await?;
 
         info!("Creating glue...");
 

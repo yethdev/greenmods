@@ -1,11 +1,13 @@
 //! The main config models.
 
 use crate::{AdminConfig, AuthConfigs, MeilisearchConfig, PostgresConfig, StorageConfig, UIConfig};
+use askama::Template;
 use modhost_core::Result;
 use std::fs;
 
 /// The main ModHost configuration.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Template)]
+#[template(path = "config.pkl", escape = "yml")]
 pub struct AppConfig {
     /// The ModHost server configuration.
     pub server: ServerConfig,
@@ -56,5 +58,10 @@ impl AppConfig {
         fs::write("ModHost.toml", toml::to_string_pretty(self)?)?;
 
         Ok(())
+    }
+
+    /// Render the config as a pkl-formatted config.
+    pub fn render(&self) -> askama::Result<String> {
+        Template::render(self)
     }
 }

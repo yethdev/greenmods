@@ -30,7 +30,8 @@ pb_data
 minio_data
 ModHost.toml
 ModHost.toml.*
-config.pkl
+/config.pkl
+/default-config.pkl
 config.kjspkg.pkl
 config.astro.pkl
 !apps/server/ModHost.toml

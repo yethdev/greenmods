@@ -184,6 +184,11 @@ pub enum AppError {
     #[cfg(feature = "crossbeam-channel")]
     CrossbeamChannelRecv(#[from] crossbeam_channel::RecvError),
 
+    /// An error occured while rendering a template.
+    #[error(transparent)]
+    #[cfg(feature = "askama")]
+    Askama(#[from] askama::Error),
+
     /// A token was missing.
     #[error("Missing required token header or cookie!")]
     MissingToken,

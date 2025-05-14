@@ -7,6 +7,7 @@ pub extern crate clap_verbosity_flag;
 pub extern crate dotenvy;
 pub extern crate modhost;
 pub extern crate tokio;
+pub extern crate tracing;
 
 /// The QuickHost macro.
 ///
@@ -45,9 +46,10 @@ macro_rules! quickhost {
             use $crate::clap::{self, Parser, CommandFactory, Command};
             use $crate::clap_verbosity_flag::{Verbosity, InfoLevel};
             use $crate::clap_complete::{Shell, Generator, generate};
-            use $crate::modhost::{ModHost, Result, init_logger, from_log_level};
+            use $crate::modhost::{ModHost, Result, init_logger, from_log_level, get_config};
             use $crate::dotenvy::dotenv;
-            use std::io::stdout;
+            use $crate::tracing::info;
+            use std::{io::stdout, fs};
 
             #[derive(Debug, Clone, Parser)]
             #[command(version, about, long_about = None)]
@@ -57,6 +59,9 @@ macro_rules! quickhost {
 
                 #[arg(short = 'C', long)]
                 complete: Option<Shell>,
+
+                #[arg(short = 'G', long = "generate-config")]
+                generate_config: bool,
             }
 
             impl QuickHostCli {
@@ -73,6 +78,16 @@ macro_rules! quickhost {
                     let _ = dotenv();
 
                     let _guard = init_logger("modhost-server", from_log_level(self.verbose.log_level_filter()))?;
+
+                    if self.generate_config {
+                        info!("Generating default config...");
+
+                        let config = get_config()?;
+
+                        fs::write("default-config.pkl", config.render()?)?;
+
+                        return Ok(());
+                    }
 
                     ModHost::new(Box::new($($verifier)*))
                         .await?

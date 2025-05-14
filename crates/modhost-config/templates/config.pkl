@@ -1,0 +1,88 @@
+import "./pkl/ModHost.pkl"
+
+app: ModHost.AppConfig = new {
+    server {
+        host = "{{ server.host }}"
+        port = {{ server.port }}
+    }
+
+    postgres {
+        host = "{{ postgres.host }}""
+        port = {{ postgres.port }}
+        user = "{{ postgres.user }}"
+        {% if let Some(pass) = postgres.pass %}pass = "{{ pass }}"{% endif %}
+        database = "{{ postgres.database }}"
+    }
+
+    meilisearch {
+        host = "{{ meilisearch.host }}"
+        port = {{ meilisearch.port }}
+        protocol = "{{ meilisearch.protocol }}"
+        key = "{{ meilisearch.key }}"
+
+        indexes {
+            projects = "{{ meilisearch.project_index }}"
+        }
+    }
+
+    auth {
+        github {
+            client_id = "{{ auth.github.client_id }}"
+            client_secret = "{{ auth.github.client_secret }}"
+        }
+    }
+
+    storage {
+        s3 {
+            region = "{{ storage.s3_region }}"
+            endpoint = "{{ storage.s3_endpoint }}"
+            access_key = "{{ storage.s3_access_key }}"
+            secret_key = "{{ storage.s3_secret_key }}"
+        }
+
+        buckets {
+            projects = "{{ storage.projects_bucket }}"
+            gallery = "{{ storage.gallery_bucket }}"
+        }
+    }
+
+    ui {
+        app = "{{ ui.app }}"
+        tagline = "{{ ui.tagline }}"
+        show_beta = {{ ui.show_beta }}
+        default_theme = "{{ ui.default_theme }}"
+        theme_color = "{{ ui.theme_color }}"
+        badge_base = "{{ ui.badge_base }}"
+        badge_secondary = "{{ ui.badge_secondary }}"
+        
+        favicon {
+            ico = "{{ ui.favicon_ico }}"
+            png = "{{ ui.favicon_png }}"
+        }
+
+        game {
+            beta_name = "{{ ui.game_beta_name.stringify() }}"
+        }
+
+        projects {
+            kind = "{{ ui.project_kind.stringify() }}"
+
+            file_formats = List(
+                {% for fmt in ui.project_file_formats -%}
+                "{{ fmt }}",
+                {% endfor %}
+            )
+        }
+    }
+
+    admin {
+        stats {
+            interval = {{ admin.fmt_stats_interval() }}
+        }
+    }
+}
+
+output {
+    value = app
+    renderer = ModHost.renderer()
+}

@@ -86,6 +86,8 @@ pub async fn run() -> Result<()> {
                 let user = NewUser {
                     github_id: author_id as i32,
                     username: author_name,
+                    admin: false,
+                    moderator: false,
                 };
 
                 let user: User = insert_into(users::table)

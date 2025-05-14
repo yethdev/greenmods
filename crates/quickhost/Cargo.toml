@@ -15,4 +15,6 @@ clap-verbosity-flag.workspace = true
 clap_complete.workspace = true
 dotenvy.workspace = true
 modhost.workspace = true
+modhost-core = { workspace = true, features = ["askama"] }
 tokio.workspace = true
+tracing.workspace = true

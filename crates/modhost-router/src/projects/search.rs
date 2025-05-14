@@ -82,7 +82,7 @@ pub async fn search_handler(
 
     match get_user_from_req(&jar, &headers, &mut conn).await {
         Ok(user) => {
-            if !user.admin {
+            if !user.admin && !user.moderator {
                 facets.push(Facet::Manual(format!(
                     "{} OR {}",
                     Facet::Visibility(ProjectVisibility::Public).into_filter_string(),

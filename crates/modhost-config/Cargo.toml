@@ -9,6 +9,7 @@ authors.workspace = true
 readme.workspace = true
 
 [dependencies]
+askama.workspace = true
 config.workspace = true
 duration-str.workspace = true
 modhost-core = { workspace = true, features = ["url", "config", "s3", "toml"] }
