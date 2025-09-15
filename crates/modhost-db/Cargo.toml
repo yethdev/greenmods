@@ -12,7 +12,7 @@ readme.workspace = true
 chrono.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
-diesel_async_migrations.workspace = true
+diesel_migrations.workspace = true
 diesel-derive-enum.workspace = true
 itertools.workspace = true
 modhost-core = { workspace = true, features = ["diesel", "diesel-async", "utoipa"] }

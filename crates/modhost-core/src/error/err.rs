@@ -164,10 +164,10 @@ pub enum AppError {
     #[cfg(feature = "logging")]
     OpenTelemetry(#[from] opentelemetry_sdk::error::OTelSdkError),
 
-    /// An error with OpenTelemetry metrics.
-    #[error(transparent)]
-    #[cfg(feature = "logging")]
-    OpenTelemetryMetrics(#[from] opentelemetry_sdk::metrics::MetricError),
+    // /// An error with OpenTelemetry metrics.
+    // #[error(transparent)]
+    // #[cfg(feature = "logging")]
+    // OpenTelemetryMetrics(#[from] opentelemetry_sdk::metrics::MetricError),
 
     /// An error with the OpenTelemetry exporter.
     #[error(transparent)]
