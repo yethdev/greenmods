@@ -86,6 +86,7 @@ pub fn init_logger(service_name: impl AsRef<str>, verbosity: LevelFilter) -> Res
     filter = filter.add_directive("want=warn".parse().unwrap());
     filter = filter.add_directive("tungstenite=warn".parse().unwrap());
     filter = filter.add_directive("arboard=warn".parse().unwrap());
+    filter = filter.add_directive("sqlx::query=warn".parse().unwrap());
 
     let log_exporter = LogExporter::builder().with_http().build()?;
 

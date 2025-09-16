@@ -33,14 +33,13 @@ pub async fn get_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<User>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin {
         return Err(AppError::NoAccess);
     }
 
-    let found = get_user(id, &mut conn).await?;
+    let found = get_user(id, &state.db).await?;
 
     Ok(Json(found))
 }

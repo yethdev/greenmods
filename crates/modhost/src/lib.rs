@@ -4,8 +4,8 @@
 #[macro_use]
 extern crate tracing;
 
-pub use modhost_core::{Result, logger::*};
 pub use modhost_config::get_config;
+pub use modhost_core::{Result, logger::*};
 pub use modhost_server_core::{loader, loaders, models::*, tag, tags};
 
 use axum::{Router, body::Bytes, extract::connect_info::IntoMakeServiceWithConnectInfo, serve};
@@ -61,22 +61,22 @@ impl ModHost {
 
         info!("Connecting to the database (async pool)...");
 
-        let pool = create_connection(Some(config.postgres.uri())).await?;
+        let db = create_connection(Some(config.postgres.uri())).await?;
 
         info!("Creating state...");
 
         let api_spec = create_api_spec(&config);
-        let state = AppState::new(pool.clone(), &config, verifier, api_spec.clone()).await?;
+        let state = AppState::new(db.clone(), &config, verifier, api_spec.clone()).await?;
 
         info!("Running migrations...");
 
-        run_migrations(&pool).await?;
+        run_migrations(&db).await?;
         state.search.ensure_setup().await?;
 
         info!("Indexing projects...");
 
         // We should run this on startup, it ensures everything gets indexed if it was missed.
-        state.search.index_projects(&mut pool.get().await?).await?;
+        state.search.index_projects(&db).await?;
 
         info!("Creating glue...");
 
@@ -93,7 +93,7 @@ impl ModHost {
 
         Ok(Self {
             config,
-            pool,
+            pool: db,
             state,
             glue,
             addr,

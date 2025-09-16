@@ -120,7 +120,7 @@ impl Facet {
         format!(
             "({})",
             match self {
-                Self::Visibility(v) => format!("visibility = {}", v.as_str()),
+                Self::Visibility(v) => format!("visibility = {}", v),
                 Self::GameVersions(v) => format!("game_versions IN [{}]", v.join(", ")),
                 Self::Loaders(v) => format!("loaders IN [{}]", v.join(", ")),
                 Self::Tags(v) => format!("tags IN [{}]", v.join(", ")),

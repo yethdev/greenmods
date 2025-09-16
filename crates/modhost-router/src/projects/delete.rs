@@ -7,13 +7,12 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, delete};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{ProjectAuthor, project_authors, projects};
+use modhost_db::prelude::ProjectAuthors;
 use modhost_db_util::projects::get_project;
 use modhost_server_core::state::AppState;
+use sea_orm::ModelTrait;
 
 /// Delete Project
 ///
@@ -37,15 +36,9 @@ pub async fn delete_handler(
     Path(id): Path<String>,
     State(state): State<AppState>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(id, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(id, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -53,12 +46,8 @@ pub async fn delete_handler(
             .body(Body::empty())?);
     }
 
-    delete(projects::table)
-        .filter(projects::id.eq(pkg.id))
-        .execute(&mut conn)
-        .await?;
-
     state.search.delete_project(pkg.id).await?;
+    pkg.delete(&state.db).await?;
 
     Ok(Response::builder().body(Body::new("Deleted project successfully!".to_string()))?)
 }

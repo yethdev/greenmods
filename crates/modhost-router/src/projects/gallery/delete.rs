@@ -7,14 +7,16 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, delete};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{GalleryImage, ProjectAuthor, gallery_images, get_gallery_image, project_authors};
+use modhost_db::{
+    gallery_images, get_gallery_image,
+    prelude::{GalleryImages, ProjectAuthors},
+};
 use modhost_db_util::projects::get_project;
 use modhost_server_core::state::AppState;
 use object_store::ObjectStore;
+use sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 
 /// Delete Gallery Image
 ///
@@ -41,16 +43,10 @@ pub async fn delete_handler(
     Path((project, image)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(project, &mut conn).await?;
-    let img = get_gallery_image(image, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(project, &state.db).await?;
+    let img = get_gallery_image(image, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -58,10 +54,9 @@ pub async fn delete_handler(
             .body(Body::empty())?);
     }
 
-    let all_referencing = gallery_images::table
-        .filter(gallery_images::s3_id.eq(img.s3_id.clone()))
-        .select(GalleryImage::as_select())
-        .load(&mut conn)
+    let all_referencing = GalleryImages::find()
+        .filter(gallery_images::Column::S3Id.eq(img.s3_id.clone()))
+        .all(&state.db)
         .await?;
 
     if all_referencing.len() <= 1 {
@@ -72,10 +67,7 @@ pub async fn delete_handler(
             .await?;
     }
 
-    delete(gallery_images::table)
-        .filter(gallery_images::id.eq(img.id))
-        .execute(&mut conn)
-        .await?;
+    img.delete(&state.db).await?;
 
     Ok(Response::builder().body(Body::new("Deleted gallery image successfully!".to_string()))?)
 }

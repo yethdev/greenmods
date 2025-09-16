@@ -8,13 +8,58 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper, insert_into};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{NewProject, Project, ProjectAuthor, ProjectData, project_authors, projects};
+use modhost_db::{ProjectData, ProjectVisibility, prelude::Projects, project_authors, projects};
 use modhost_db_util::projects::get_full_project;
 use modhost_server_core::state::AppState;
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
+};
+
+fn default_vis() -> ProjectVisibility {
+    ProjectVisibility::Public
+}
+
+/// A model for creating a new project.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, ToResponse)]
+pub struct NewProject {
+    /// The project's URL slug.
+    pub slug: String,
+
+    /// The project's name.
+    pub name: String,
+
+    /// The project's README.
+    pub readme: String,
+
+    /// A short description of the project.
+    pub description: String,
+
+    /// An optional link to the project's source code.
+    #[serde(default)]
+    pub source: Option<String>,
+
+    /// An optional link to the project's issue tracker.
+    #[serde(default)]
+    pub issues: Option<String>,
+
+    /// An optional link to the project's wiki.
+    #[serde(default)]
+    pub wiki: Option<String>,
+
+    /// The visibility of a project. Optional. Defaults to public.
+    #[serde(default = "default_vis")]
+    pub visibility: ProjectVisibility,
+
+    /// The license the project is under.
+    #[serde(default)]
+    pub license: Option<String>,
+
+    /// A list of tags for this project.
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
 
 /// Create Project
 ///
@@ -40,8 +85,7 @@ pub async fn create_handler(
     State(state): State<AppState>,
     Json(body): Json<NewProject>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if body.slug.is_empty() {
         return Ok(Response::builder()
@@ -49,13 +93,11 @@ pub async fn create_handler(
             .body(Body::new("Slug must not be empty!".to_string()))?);
     }
 
-    if projects::table
-        .filter(projects::slug.eq(body.slug.clone()))
-        .select(Project::as_select())
-        .first(&mut conn)
-        .await
-        .optional()?
-        .is_some()
+    if Projects::find()
+        .filter(projects::Column::Slug.eq(body.slug.clone()))
+        .count(&state.db)
+        .await?
+        > 0
     {
         return Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
@@ -64,23 +106,32 @@ pub async fn create_handler(
             ))?);
     }
 
-    let pkg = insert_into(projects::table)
-        .values(&body)
-        .returning(Project::as_returning())
-        .get_result(&mut conn)
-        .await?;
+    let pkg = projects::ActiveModel {
+        slug: Set(body.slug),
+        name: Set(body.name),
+        readme: Set(body.readme),
+        description: Set(body.description),
+        source: Set(body.source),
+        issues: Set(body.issues),
+        wiki: Set(body.wiki),
+        visibility: Set(body.visibility),
+        license: Set(body.license),
+        tags: Set(body.tags),
+        ..Default::default()
+    };
 
-    insert_into(project_authors::table)
-        .values(&ProjectAuthor {
-            project: pkg.id,
-            user_id: user.id,
-        })
-        .execute(&mut conn)
-        .await?;
+    let pkg = pkg.insert(&state.db).await?;
 
-    state.search.update_project(pkg.id, &mut conn).await?;
+    project_authors::ActiveModel {
+        project: Set(pkg.id),
+        user_id: Set(user.id),
+    }
+    .insert(&state.db)
+    .await?;
+
+    state.search.update_project(pkg.id, &state.db).await?;
 
     Ok(Response::builder().body(Body::new(serde_json::to_string(
-        &get_full_project(pkg.id.to_string(), &mut conn).await?,
+        &get_full_project(pkg.id.to_string(), &state.db).await?,
     )?))?)
 }

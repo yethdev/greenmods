@@ -35,11 +35,10 @@ pub async fn info_handler(
     Path((project, version)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> Result<Json<ProjectVersionData>> {
-    let mut conn = state.pool.get().await?;
-    let pkg = get_full_project(project, &mut conn).await?;
+    let pkg = get_full_project(project, &state.db).await?;
 
     if pkg.visibility == ProjectVisibility::Private {
-        match get_user_from_req(&jar, &headers, &mut conn).await {
+        match get_user_from_req(&jar, &headers, &state.db).await {
             Ok(user) => {
                 if !pkg.authors.iter().any(|v| v.github_id == user.github_id) && !user.admin {
                     return Err(AppError::NotFound);
@@ -50,5 +49,7 @@ pub async fn info_handler(
         }
     }
 
-    Ok(Json(get_full_version(pkg.id, version, &mut conn).await?))
+    Ok(Json(
+        get_full_version(&pkg.into_project(), version, &state.db).await?,
+    ))
 }

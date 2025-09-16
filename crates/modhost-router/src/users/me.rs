@@ -30,7 +30,7 @@ pub async fn me_handler(
 ) -> Result<Response> {
     Ok(
         Response::builder().body(Body::new(serde_json::to_string_pretty(
-            &get_user_from_req(&jar, &headers, &mut state.pool.get().await?).await?,
+            &get_user_from_req(&jar, &headers, &state.db).await?,
         )?))?,
     )
 }

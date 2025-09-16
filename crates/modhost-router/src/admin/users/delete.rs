@@ -6,12 +6,11 @@ use axum::{
     http::HeaderMap,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, SelectableHelper, delete};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::{AppError, Result};
-use modhost_db::{User, get_user, users};
+use modhost_db::{User, get_user};
 use modhost_server_core::state::AppState;
+use sea_orm::ModelTrait;
 
 /// Delete User
 ///
@@ -35,20 +34,15 @@ pub async fn delete_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<User>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin {
         return Err(AppError::NoAccess);
     }
 
-    let to_delete = get_user(id, &mut conn).await?;
+    let to_delete = get_user(id, &state.db).await?;
 
-    Ok(Json(
-        delete(users::table)
-            .filter(users::id.eq(to_delete.id))
-            .returning(User::as_returning())
-            .get_result(&mut conn)
-            .await?,
-    ))
+    to_delete.clone().delete(&state.db).await?;
+
+    Ok(Json(to_delete))
 }

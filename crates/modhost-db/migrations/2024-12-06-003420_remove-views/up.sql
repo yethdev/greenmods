@@ -1,1 +1,0 @@
-ALTER TABLE packages DROP COLUMN IF EXISTS views;

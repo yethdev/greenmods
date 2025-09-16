@@ -1,54 +1,40 @@
 //! Utilities for project versions.
 
-use crate::{DbConn, ProjectVersion, schema::project_versions};
-use diesel::{
-    BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
-};
-use diesel_async::RunQueryDsl;
-use modhost_core::Result;
+use migration::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use modhost_core::{AppError, Result};
+use modhost_entities::{prelude::ProjectVersions, project_versions};
+
+use crate::DbConn;
 
 /// Get a version by its ID, name, or version number.
 pub async fn get_version(
     project: i32,
     id: impl AsRef<str>,
-    conn: &mut DbConn,
-) -> Result<ProjectVersion> {
+    conn: &DbConn,
+) -> Result<project_versions::Model> {
     let id = id.as_ref();
 
     if let Ok(id) = id.parse::<i32>() {
-        let ver = project_versions::table
-            .find(id)
-            .select(ProjectVersion::as_select())
-            .first(conn)
-            .await
-            .optional()?;
+        let ver = ProjectVersions::find_by_id(id).one(conn).await?;
 
         if let Some(ver) = ver {
             return Ok(ver);
         }
     }
 
-    if let Some(ver) = project_versions::table
-        .filter(
-            project_versions::version_number
-                .eq(id)
-                .and(project_versions::project.eq(project)),
-        )
-        .select(ProjectVersion::as_select())
-        .first(conn)
-        .await
-        .optional()?
+    if let Some(ver) = ProjectVersions::find()
+        .filter(project_versions::Column::VersionNumber.eq(id))
+        .filter(project_versions::Column::Project.eq(project))
+        .one(conn)
+        .await?
     {
         return Ok(ver);
     }
 
-    Ok(project_versions::table
-        .filter(
-            project_versions::name
-                .eq(id)
-                .and(project_versions::project.eq(project)),
-        )
-        .select(ProjectVersion::as_select())
-        .first(conn)
-        .await?)
+    ProjectVersions::find()
+        .filter(project_versions::Column::Name.eq(id))
+        .filter(project_versions::Column::Project.eq(project))
+        .one(conn)
+        .await?
+        .ok_or(AppError::NotFound)
 }

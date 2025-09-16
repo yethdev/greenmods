@@ -17,8 +17,6 @@ axum = ["dep:axum"]
 chrono = ["dep:chrono"]
 config = ["dep:config"]
 crossbeam-channel = ["dep:crossbeam-channel"]
-diesel = ["dep:diesel"]
-diesel-async = ["dep:diesel-async"]
 dotenvy = ["dep:dotenvy"]
 glue = ["dep:jsglue"]
 logging = ["dep:tracing-subscriber", "dep:log", "dep:opentelemetry-appender-tracing", "dep:opentelemetry_sdk", "dep:opentelemetry", "dep:opentelemetry-otlp", "dep:tracing-opentelemetry"]
@@ -27,9 +25,10 @@ octocrab = ["dep:octocrab"]
 reqwest = ["dep:reqwest"]
 rsbadges = ["dep:rsbadges"]
 s3 = ["dep:object_store"]
+sea-orm = ["dep:sea-orm"]
 semver = ["dep:semver"]
 serde-json = ["dep:serde_json"]
-serde-yaml = ["dep:serde_yaml"]
+serde-norway = ["dep:serde_norway"]
 sysinfo = ["dep:sysinfo", "dep:utoipa", "dep:serde"]
 tempfile = ["dep:tempfile"]
 tokio = ["dep:tokio"]
@@ -45,8 +44,6 @@ axum = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 config = { workspace = true, optional = true }
 crossbeam-channel = { workspace = true, optional = true }
-diesel = { workspace = true, optional = true }
-diesel-async = { workspace = true, optional = true }
 dotenvy = { workspace = true, optional = true }
 jsglue = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
@@ -55,10 +52,11 @@ object_store = { workspace = true, optional = true }
 octocrab = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rsbadges = { workspace = true, optional = true }
+sea-orm = { workspace = true, optional = true }
 semver = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-serde_yaml = { workspace = true, optional = true }
+serde_norway = { workspace = true, optional = true }
 sysinfo = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 thiserror.workspace = true

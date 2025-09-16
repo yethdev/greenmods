@@ -28,7 +28,7 @@ pub struct BucketState {
 #[derive(Clone)]
 pub struct AppState {
     /// The database pool.
-    pub pool: DbPool,
+    pub db: DbPool,
 
     /// The [`BasicClient`] for GitHub OAuth2 calls.
     pub auth: BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>,
@@ -89,7 +89,7 @@ impl AppState {
         let icon_b64 = BASE64_STANDARD.encode(icon_data);
 
         Ok(Self {
-            pool,
+            db: pool,
             auth: config.auth.github()?,
             buckets: BucketState {
                 projects: config.storage.projects()?,

@@ -16,7 +16,10 @@ pub async fn get_image(id: impl AsRef<str>, bucket: &AmazonS3) -> Result<Vec<u8>
 
 /// Transform a [`GalleryImage`] into a [`PublicGalleryImage`], with the correct URL for it.
 pub fn transform_gallery_image(img: GalleryImage) -> PublicGalleryImage {
-    let url = format!("/api/v1/projects/s3/gallery/{}", img.s3_id);
+    let url = format!(
+        "/api/v1/projects/{}/gallery/{}/download",
+        img.project, img.id
+    );
 
     PublicGalleryImage {
         id: img.id,

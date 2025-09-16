@@ -16,7 +16,7 @@
         return (ev: MouseEvent) => {
             ev.preventDefault();
             ev.stopPropagation();
-            
+
             showGenericDeleteModal(modals, {
                 // ¿Estás seguro que quieres que borrar este usuario?
                 // - me, after 4 years of spanish classes

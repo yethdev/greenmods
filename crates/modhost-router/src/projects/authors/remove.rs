@@ -7,13 +7,12 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper, dsl::delete};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{ProjectAuthor, ProjectData, get_user, project_authors};
+use modhost_db::{ProjectData, get_user, prelude::ProjectAuthors};
 use modhost_db_util::projects::{get_full_project, get_project};
 use modhost_server_core::state::AppState;
+use sea_orm::ModelTrait;
 
 /// Remove Project Author
 ///
@@ -41,15 +40,9 @@ pub async fn remove_handler(
     State(state): State<AppState>,
     body: String,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(id, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(id, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -57,30 +50,22 @@ pub async fn remove_handler(
             .body(Body::empty())?);
     }
 
-    let to_remove = get_user(body, &mut conn).await?;
+    let to_remove = get_user(body, &state.db).await?;
 
-    if !authors.iter().any(|v| v.user_id == to_remove.id) {
-        return Ok(Response::builder()
+    if let Some(found) = authors.into_iter().find(|it| it.user_id == to_remove.id) {
+        found.delete(&state.db).await?;
+        state.search.update_project(pkg.id, &state.db).await?;
+
+        Ok(Response::builder()
+            .header("Content-Type", "application/json")
+            .body(Body::new(serde_json::to_string(
+                &get_full_project(pkg.id.to_string(), &state.db).await?,
+            )?))?)
+    } else {
+        Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .body(Body::new(
                 "Author is not a member of the project!".to_string(),
-            ))?);
+            ))?)
     }
-
-    delete(project_authors::table)
-        .filter(
-            project_authors::project
-                .eq(pkg.id)
-                .and(project_authors::user_id.eq(to_remove.id)),
-        )
-        .execute(&mut conn)
-        .await?;
-
-    state.search.update_project(pkg.id, &mut conn).await?;
-
-    Ok(Response::builder()
-        .header("Content-Type", "application/json")
-        .body(Body::new(serde_json::to_string(
-            &get_full_project(pkg.id.to_string(), &mut conn).await?,
-        )?))?)
 }

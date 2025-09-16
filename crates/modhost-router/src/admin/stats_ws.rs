@@ -44,8 +44,7 @@ pub async fn stats_socket_handler(
     State(state): State<AppState>,
     ws: WebSocketUpgrade,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_for_token(t, &mut conn)
+    let user = get_user_for_token(t, &state.db)
         .await?
         .ok_or(AppError::InvalidToken)?;
 
@@ -69,7 +68,7 @@ pub async fn handle_stats_socket(socket: WebSocket, state: AppState) -> Result<(
                     &state.buckets.projects,
                     &state.buckets.gallery,
                     &state.search.projects(),
-                    &mut state.pool.get().await?,
+                    &state.db,
                 )
                 .await?,
             )?

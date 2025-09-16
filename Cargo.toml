@@ -30,10 +30,6 @@ crates_io_api = "0.12.0"
 crossbeam-channel = "0.5.15"
 ctrlc = "3.5.0"
 derive_builder = "0.20.2"
-diesel = { version = "2.3.1", features = ["chrono", "postgres"] }
-diesel-async = { version = "0.6.1", features = ["tokio", "postgres", "deadpool"], git = "https://github.com/weiznich/diesel_async" }
-diesel_migrations = "2.3.0"
-diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 dotenvy = "0.15.7"
 duration-str = "0.17.0"
 flate2 = "1.1.2"
@@ -68,10 +64,12 @@ rsbadges = "1.1.5"
 semver = { version = "1.0.27", features = ["serde"] }
 serde = { version = "1.0.223", features = ["derive"] }
 serde_json = "1.0.145"
+serde_norway = "0.9.42"
 serde-this-or-that = "0.5.0"
-serde_yaml = "0.9.34"
 serde-xml-rs = "0.8.1"
 sha-1 = "0.10.1"
+strum = "0.27.2"
+strum_macros = "0.27.2"
 sysinfo = "0.37.0"
 tar = "0.4.44"
 tempfile = "3.22.0"
@@ -98,6 +96,10 @@ axum-tracing-opentelemetry = { version = "0.30.0" }
 opentelemetry-otlp = { version = "0.30.0", features = ["tonic"] }
 tracing-opentelemetry = { version = "0.31.0" }
 
+async-std = { version = "1.13.2", features = ["attributes", "tokio1"] }
+sea-orm = { version = "2.0.0-rc.6", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+sea-orm-migration = { version = "2.0.0-rc.6", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+
 axumite = { version = "0", path = "./crates/axumite" }
 imghdr = { version = "0", path = "./crates/imghdr", features = ["serde"] }
 include_dir = { version = "0", path = "./crates/include_dir" }
@@ -115,6 +117,8 @@ modhost-router = { version = "0", path = "./crates/modhost-router" }
 modhost-search = { version = "0", path = "./crates/modhost-search" }
 modhost-server-core = { version = "0", path = "./crates/modhost-server-core" }
 modhost-ui = { version = "0", path = "./crates/modhost-ui" }
+modhost-migrations = { version = "0", path = "./crates/modhost-migrations" }
+modhost-entities = { version = "0", path = "./crates/modhost-entities" }
 parse-wiki-text-2 = { version = "0", path = "./crates/parse-wiki-text-2" }
 quickhost = { version = "0", path = "./crates/quickhost" }
 

@@ -5,12 +5,11 @@ use axum::{
     http::HeaderMap,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, update};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::{AppError, Result};
-use modhost_db::{get_user, users};
+use modhost_db::get_user;
 use modhost_server_core::state::AppState;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel};
 
 /// Add Admin
 ///
@@ -37,19 +36,17 @@ pub async fn add_handler(
     State(state): State<AppState>,
     Path(user): Path<String>,
 ) -> Result<()> {
-    let mut conn = state.pool.get().await?;
-    let to_add = get_user(user, &mut conn).await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let to_add = get_user(user, &state.db).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin {
         return Err(AppError::NoAccess);
     }
 
-    update(users::table)
-        .filter(users::id.eq(to_add.id))
-        .set(users::admin.eq(true))
-        .execute(&mut conn)
-        .await?;
+    let mut user = to_add.into_active_model();
+
+    user.admin = Set(true);
+    user.update(&state.db).await?;
 
     Ok(())
 }

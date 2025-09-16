@@ -1,14 +1,14 @@
 use anyhow::Result;
 use astro_migrator::models::{Mod, ModsDump};
-use diesel::{SelectableHelper, insert_into};
-use diesel_async::RunQueryDsl;
 use indicatif::ProgressIterator;
 use itertools::Itertools;
 use modhost::init_logger;
 use modhost_config::get_config;
-use modhost_db::{NewUser, User, create_connection, run_migrations, users};
+use modhost_db::{create_connection, fresh_migrations, users};
 use modhost_search::MeilisearchService;
 use ron::ser::PrettyConfig;
+use sea_orm::ActiveModelTrait;
+use sea_orm::ActiveValue::Set;
 use std::{fs, path::PathBuf};
 use tracing::level_filters::LevelFilter;
 
@@ -17,9 +17,9 @@ pub async fn main() -> Result<()> {
     let _guard = init_logger("modhost-migrator-astro", LevelFilter::INFO)?;
 
     let config = get_config()?;
-    let pool = create_connection(Some(config.postgres.uri())).await?;
+    let db = create_connection(Some(config.postgres.uri())).await?;
 
-    run_migrations(&pool).await?;
+    fresh_migrations(&db).await?;
 
     let pkgs = config.storage.projects()?;
     let imgs = config.storage.gallery()?;
@@ -30,35 +30,31 @@ pub async fn main() -> Result<()> {
     let data = serde_json::from_str::<ModsDump>(&raw)?;
     let dump: Vec<Mod> = data.into();
 
-    let user = NewUser {
-        github_id: -1,
-        username: "ModHost Migrator".into(),
-        admin: false,
-        moderator: false,
-    };
+    let user = users::ActiveModel {
+        github_id: Set(-1),
+        username: Set("ModHost Migrator".into()),
+        admin: Set(false),
+        moderator: Set(false),
+        ..Default::default()
+    }
+    .insert(&db)
+    .await?;
 
-    let id = insert_into(users::table)
-        .values(user)
-        .returning(User::as_returning())
-        .get_result(&mut pool.get().await?)
-        .await?
-        .id;
+    let id = user.id;
 
     let mut tags = Vec::new();
 
     for item in dump.into_iter().progress() {
-        let (pkg, _) = item
-            .upload_all(id, &mut pool.get().await?, &pkgs, &imgs)
-            .await?;
+        let (pkg, _) = item.upload_all(id, &db, &pkgs, &imgs).await?;
 
         tags.extend(pkg.tags);
     }
 
-    let tags = tags.into_iter().flatten().sorted().dedup().collect_vec();
+    let tags = tags.into_iter().sorted().dedup().collect_vec();
 
     let search = MeilisearchService::new(&config)?;
 
-    search.index_projects(&mut pool.get().await?).await?;
+    search.index_projects(&db).await?;
 
     fs::write(
         tags_file,
