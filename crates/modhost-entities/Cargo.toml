@@ -1,0 +1,17 @@
+[package]
+name = "modhost-entities"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme.workspace = true
+
+[dependencies]
+sea-orm.workspace = true
+serde.workspace = true
+utoipa.workspace = true
+modhost-core = { workspace = true, features = ["utoipa"] }
+strum.workspace = true
+strum_macros.workspace = true

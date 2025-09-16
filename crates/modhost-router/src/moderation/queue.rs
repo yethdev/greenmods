@@ -4,11 +4,8 @@ use axum::{Json, extract::State, http::HeaderMap};
 use axum_extra::extract::CookieJar;
 use modhost_auth::get_user_from_req;
 use modhost_core::{AppError, Result};
-use modhost_db::ModerationQueueItem;
-use modhost_db_util::moderation::{
-    get_approved_moderation_queue, get_denied_moderation_queue, get_moderation_queue,
-    get_pending_moderation_queue, get_under_review_moderation_queue,
-};
+use modhost_db::{ModerationQueueItem, sea_orm_active_enums::ModerationStatusEnum};
+use modhost_db_util::moderation::{get_moderation_queue, get_queue_by_status};
 use modhost_server_core::state::AppState;
 
 /// Full Queue
@@ -32,14 +29,13 @@ pub async fn list_queue(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ModerationQueueItem>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin || !user.moderator {
         return Err(AppError::NoAccess);
     }
 
-    Ok(Json(get_moderation_queue(&mut conn).await?))
+    Ok(Json(get_moderation_queue(&state.db).await?))
 }
 
 /// Pending Queue
@@ -63,14 +59,15 @@ pub async fn list_queue_pending(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ModerationQueueItem>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin || !user.moderator {
         return Err(AppError::NoAccess);
     }
 
-    Ok(Json(get_pending_moderation_queue(&mut conn).await?))
+    Ok(Json(
+        get_queue_by_status(ModerationStatusEnum::Pending, &state.db).await?,
+    ))
 }
 
 /// Approved Queue
@@ -94,14 +91,15 @@ pub async fn list_queue_approved(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ModerationQueueItem>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin || !user.moderator {
         return Err(AppError::NoAccess);
     }
 
-    Ok(Json(get_approved_moderation_queue(&mut conn).await?))
+    Ok(Json(
+        get_queue_by_status(ModerationStatusEnum::Approved, &state.db).await?,
+    ))
 }
 
 /// Under Review Queue
@@ -125,14 +123,15 @@ pub async fn list_queue_under_review(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ModerationQueueItem>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin || !user.moderator {
         return Err(AppError::NoAccess);
     }
 
-    Ok(Json(get_under_review_moderation_queue(&mut conn).await?))
+    Ok(Json(
+        get_queue_by_status(ModerationStatusEnum::UnderReview, &state.db).await?,
+    ))
 }
 
 /// Denied Queue
@@ -156,12 +155,13 @@ pub async fn list_queue_denied(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ModerationQueueItem>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin || !user.moderator {
         return Err(AppError::NoAccess);
     }
 
-    Ok(Json(get_denied_moderation_queue(&mut conn).await?))
+    Ok(Json(
+        get_queue_by_status(ModerationStatusEnum::Denied, &state.db).await?,
+    ))
 }

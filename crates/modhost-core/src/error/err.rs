@@ -8,11 +8,6 @@ use thiserror::Error;
 /// types, and providing some extra for custom responses.
 #[derive(Debug, Error)]
 pub enum AppError {
-    /// An error with the async database pool occured.
-    #[error(transparent)]
-    #[cfg(feature = "diesel-async")]
-    Pool(#[from] diesel_async::pooled_connection::deadpool::PoolError),
-
     /// An error with a GitHub API client occured.
     #[error(transparent)]
     #[cfg(feature = "octocrab")]
@@ -23,10 +18,15 @@ pub enum AppError {
     #[cfg(feature = "url")]
     Url(#[from] url::ParseError),
 
-    /// An error with the database occured.
+    /// An error executing SQL occured.
     #[error(transparent)]
-    #[cfg(feature = "diesel")]
-    Database(#[from] diesel::result::Error),
+    #[cfg(feature = "sea-orm")]
+    SQL(#[from] sea_orm::SqlErr),
+
+    /// An error executing something with SQLx occured.
+    #[error(transparent)]
+    #[cfg(feature = "sea-orm")]
+    SQLx(#[from] sea_orm::SqlxError),
 
     /// An error with [`axum`] occured.
     #[error(transparent)]
@@ -53,10 +53,10 @@ pub enum AppError {
     #[cfg(feature = "serde-json")]
     Json(#[from] serde_json::Error),
 
-    /// An error with [`serde_yaml`] occured.
+    /// An error with [`serde_norway`] occured.
     #[error(transparent)]
-    #[cfg(feature = "serde-yaml")]
-    Yaml(#[from] serde_yaml::Error),
+    #[cfg(feature = "serde-norway")]
+    Yaml(#[from] serde_norway::Error),
 
     /// An error serializing toml occured.
     #[error(transparent)]
@@ -112,8 +112,8 @@ pub enum AppError {
 
     /// An error initializing the database occured.
     #[error(transparent)]
-    #[cfg(feature = "diesel-async")]
-    DbInit(#[from] diesel_async::pooled_connection::deadpool::BuildError),
+    #[cfg(feature = "sea-orm")]
+    DbInit(#[from] sea_orm::DbErr),
 
     /// An error validating semver occured.
     #[error(transparent)]
@@ -168,7 +168,6 @@ pub enum AppError {
     // #[error(transparent)]
     // #[cfg(feature = "logging")]
     // OpenTelemetryMetrics(#[from] opentelemetry_sdk::metrics::MetricError),
-
     /// An error with the OpenTelemetry exporter.
     #[error(transparent)]
     #[cfg(feature = "logging")]
@@ -240,6 +239,10 @@ pub enum AppError {
     /// Couldn't find the right logo for a badge.
     #[error("Failed to find logo: {0}")]
     NoLogo(String),
+
+    /// Basically Option::unwrap()
+    #[error("Tried to unwrap a None value!")]
+    Option,
 }
 
 #[cfg(feature = "axum")]

@@ -54,6 +54,10 @@ pub struct UIConfig {
     /// The secondary badge color, used in the second part of the badge.
     /// Defaults to `"#068099"`.
     pub badge_secondary: String,
+
+    /// Show the repo/commit this instance was built from.
+    /// Defaults to `true`.
+    pub show_commit: bool,
 }
 
 /// The type of project to use in translations (Mods or Packages).
@@ -129,6 +133,12 @@ impl UIConfig {
         );
 
         map.insert("PUBLIC_THEME_COLOR".into(), self.theme_color.clone());
+        map.insert("PUBLIC_SHOW_COMMIT".into(), self.show_commit.to_string());
+
+        if self.show_commit {
+            map.insert("PUBLIC_MODHOST_COMMIT".into(), modhost_core::COMMIT.into());
+            map.insert("PUBLIC_MODHOST_ORIGIN".into(), modhost_core::ORIGIN.into());
+        }
 
         map
     }
@@ -155,6 +165,7 @@ impl Default for UIConfig {
             theme_color: "#068099".into(),
             badge_base: "#191d28".into(),
             badge_secondary: "#068099".into(),
+            show_commit: true,
         }
     }
 }

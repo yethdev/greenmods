@@ -10,15 +10,12 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::Host;
-use diesel::{
-    ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper, dsl::insert_into, update,
-};
-use diesel_async::RunQueryDsl;
 use modhost_core::Result;
-use modhost_db::{NewUser, User, create_token, users};
+use modhost_db::{create_token, prelude::Users, users};
 use modhost_middleware::scheme::Scheme;
 use modhost_server_core::{github::create_github_client, state::AppState};
 use oauth2::{RedirectUrl, TokenResponse};
+use sea_orm::{ActiveValue::Set, EntityTrait, sea_query::OnConflict};
 use std::collections::HashMap;
 
 use super::CALLBACK_URL;
@@ -44,7 +41,6 @@ pub async fn callback_handler(
     Scheme(scheme): Scheme,
     url: Uri,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
     let query = url::form_urlencoded::parse(url.query().unwrap().as_bytes())
         .into_owned()
         .collect::<HashMap<String, String>>();
@@ -66,50 +62,22 @@ pub async fn callback_handler(
             let client = create_github_client(github_token)?;
             let me = client.current().user().await?;
 
-            let existing = users::table
-                .filter(users::github_id.eq(me.id.0 as i32))
-                .select(User::as_select())
-                .first(&mut conn)
-                .await
-                .optional()?;
+            let user = Users::insert(users::ActiveModel {
+                username: Set(me.login),
+                github_id: Set(me.id.0 as i32),
+                admin: Set(false),
+                moderator: Set(false),
+                ..Default::default()
+            })
+            .on_conflict(
+                OnConflict::column(users::Column::GithubId)
+                    .update_column(users::Column::Username)
+                    .to_owned(),
+            )
+            .exec_with_returning(&state.db)
+            .await?;
 
-            let user = if let Some(existing) = existing {
-                update(users::table)
-                    .filter(users::id.eq(existing.id))
-                    .set(users::username.eq(me.login))
-                    .returning(User::as_returning())
-                    .get_result(&mut conn)
-                    .await?
-            } else {
-                #[cfg(not(debug_assertions))]
-                let user = NewUser {
-                    username: me.login,
-                    github_id: me.id.0 as i32,
-                    admin: false,
-                    moderator: false,
-                };
-
-                // No, this isn't a backdoor, it's just to help with dev, since I have
-                // to keep doing this when I login to the dev instance.
-                // This part doesn't get compiled in release mode.
-                // This will be removed soon(TM), when I don't have to test deleting things
-                // and kep resetting the database.
-                #[cfg(debug_assertions)]
-                let user = NewUser {
-                    username: me.login,
-                    github_id: me.id.0 as i32,
-                    admin: me.id.0 == 94275204, // this is me, RedstoneWizard08.
-                    moderator: false,
-                };
-
-                insert_into(users::table)
-                    .values(&user)
-                    .returning(User::as_returning())
-                    .get_result(&mut conn)
-                    .await?
-            };
-
-            let token = create_token(user.id, &state.pool).await?;
+            let token = create_token(user.id, &state.db).await?;
 
             let cookie_value = format!(
                 "auth-token={}; HttpOnly; Path=/; Domain={}",

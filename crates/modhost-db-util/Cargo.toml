@@ -9,10 +9,10 @@ authors.workspace = true
 readme.workspace = true
 
 [dependencies]
-diesel.workspace = true
-diesel-async.workspace = true
 itertools.workspace = true
-modhost-core = { workspace = true, features = ["anyhow", "diesel", "diesel-async", "s3"] }
+modhost-core = { workspace = true, features = ["anyhow", "s3"] }
 modhost-db.workspace = true
+modhost-entities.workspace = true
 object_store.workspace = true
 semver.workspace = true
+sea-orm.workspace = true

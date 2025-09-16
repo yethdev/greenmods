@@ -73,14 +73,13 @@ pub async fn search_handler(
         filters,
     }): Query<SearchQuery>,
 ) -> Result<Json<SearchResults>> {
-    let mut conn = state.pool.get().await?;
     let page = page.unwrap_or(1).max(1);
     let per_page = per_page.unwrap_or(25).clamp(1, MAX_PER_PAGE);
     let filters =
         serde_json::from_str::<Vec<(String, Vec<String>)>>(&filters.unwrap_or("[]".into()))?;
     let mut facets = Vec::new();
 
-    match get_user_from_req(&jar, &headers, &mut conn).await {
+    match get_user_from_req(&jar, &headers, &state.db).await {
         Ok(user) => {
             if !user.admin && !user.moderator {
                 facets.push(Facet::Manual(format!(

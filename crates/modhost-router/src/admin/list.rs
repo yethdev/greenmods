@@ -2,12 +2,11 @@
 
 use axum::{Json, extract::State, http::HeaderMap};
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::{AppError, Result};
-use modhost_db::{User, users};
+use modhost_db::{User, prelude::Users, users};
 use modhost_server_core::state::AppState;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 /// List Admins
 ///
@@ -30,18 +29,16 @@ pub async fn list_handler(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<User>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin {
         return Err(AppError::NoAccess);
     }
 
     Ok(Json(
-        users::table
-            .filter(users::admin.eq(true))
-            .select(User::as_select())
-            .load(&mut conn)
+        Users::find()
+            .filter(users::Column::Admin.eq(true))
+            .all(&state.db)
             .await?,
     ))
 }

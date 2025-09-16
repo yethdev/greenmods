@@ -35,11 +35,10 @@ pub async fn list_handler(
     Path(id): Path<String>,
     State(state): State<AppState>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let pkg = get_full_project(id.clone(), &mut conn).await?;
+    let pkg = get_full_project(id.clone(), &state.db).await?;
 
     if pkg.visibility == ProjectVisibility::Private {
-        match get_user_from_req(&jar, &headers, &mut conn).await {
+        match get_user_from_req(&jar, &headers, &state.db).await {
             Ok(user) => {
                 if !pkg.authors.iter().any(|v| v.github_id == user.github_id) && !user.admin {
                     return Err(AppError::NotFound);
@@ -53,6 +52,6 @@ pub async fn list_handler(
     Ok(Response::builder()
         .header("Content-Type", "application/json")
         .body(Body::new(serde_json::to_string(&transform_gallery(
-            get_gallery(id, &mut conn).await?,
+            get_gallery(id, &state.db).await?,
         ))?))?)
 }

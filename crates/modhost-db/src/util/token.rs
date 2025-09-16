@@ -1,10 +1,13 @@
 //! Utilities for tokens.
 
-use crate::{DbConn, DbPool, NewUserToken, User, UserToken, user_tokens, users};
+use crate::DbConn;
 use chrono::{DateTime, Utc};
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper, insert_into};
-use diesel_async::RunQueryDsl;
+use migration::sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 use modhost_core::Result;
+use modhost_entities::{
+    prelude::{UserTokens, Users},
+    user_tokens, users,
+};
 use random_string::{charsets::ALPHANUMERIC, generate};
 
 /// The time until a token expires in milliseconds.
@@ -16,41 +19,38 @@ pub const TOKEN_EXPIRE_TIME: i64 = 1 * 604800 * 1000;
 pub const TOKEN_LENGTH: usize = 64;
 
 /// Generate a token to insert into the database.
-pub fn generate_token(user_id: i32) -> NewUserToken {
-    NewUserToken {
-        user_id,
-        value: generate(TOKEN_LENGTH, ALPHANUMERIC),
-        expires: DateTime::from_timestamp_millis(Utc::now().timestamp_millis() + TOKEN_EXPIRE_TIME)
-            .unwrap()
-            .naive_utc(),
+pub fn generate_token(user_id: i32) -> user_tokens::ActiveModel {
+    user_tokens::ActiveModel {
+        user_id: Set(user_id),
+        value: Set(generate(TOKEN_LENGTH, ALPHANUMERIC)),
+        expires: Set(DateTime::from_timestamp_millis(
+            Utc::now().timestamp_millis() + TOKEN_EXPIRE_TIME,
+        )
+        .unwrap()
+        .naive_utc()),
+        ..Default::default()
     }
 }
 
 /// Create a token and insert it into the database.
-pub async fn create_token(user_id: i32, pool: &DbPool) -> Result<UserToken> {
-    Ok(insert_into(user_tokens::table)
-        .values(&generate_token(user_id))
-        .returning(UserToken::as_returning())
-        .get_result(&mut pool.get().await?)
+pub async fn create_token(user_id: i32, pool: &DbConn) -> Result<user_tokens::Model> {
+    Ok(UserTokens::insert(generate_token(user_id))
+        .exec_with_returning(pool)
         .await?)
 }
 
 /// Get the user the provided token belongs to.
-pub async fn get_user_for_token(token: impl AsRef<str>, conn: &mut DbConn) -> Result<Option<User>> {
-    let token = user_tokens::table
-        .filter(user_tokens::value.eq(token.as_ref().to_string()))
-        .select(UserToken::as_select())
-        .first(conn)
-        .await
-        .optional()?;
+pub async fn get_user_for_token(
+    token: impl AsRef<str>,
+    conn: &DbConn,
+) -> Result<Option<users::Model>> {
+    let token = UserTokens::find()
+        .filter(user_tokens::Column::Value.eq(token.as_ref().to_string()))
+        .one(conn)
+        .await?;
 
     if let Some(token) = token {
-        Ok(users::table
-            .filter(users::id.eq(token.user_id))
-            .select(User::as_select())
-            .first(conn)
-            .await
-            .optional()?)
+        Ok(token.find_related(Users).one(conn).await?)
     } else {
         Ok(None)
     }

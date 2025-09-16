@@ -62,9 +62,8 @@ pub async fn latest_version_badge_handler(
     State(state): State<AppState>,
     Path(project): Path<String>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let pkg = get_project(project, &mut conn).await?;
-    let ver = get_latest_version(pkg.id, &mut conn).await?;
+    let pkg = get_project(project, &state.db).await?;
+    let ver = get_latest_version(&pkg, &state.db).await?;
 
     let data = format!(
         include_str!("../assets/badges/version.svg"),

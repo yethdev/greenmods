@@ -28,8 +28,7 @@ pub async fn stats_handler(
     headers: HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Json<AdminStats>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
     if !user.admin {
         return Err(AppError::NoAccess);
@@ -40,7 +39,7 @@ pub async fn stats_handler(
             &state.buckets.projects,
             &state.buckets.gallery,
             &state.search.projects(),
-            &mut conn,
+            &state.db,
         )
         .await?,
     ))

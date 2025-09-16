@@ -86,6 +86,7 @@ pub fn init_logger(service_name: impl AsRef<str>, verbosity: LevelFilter) -> Res
     filter = filter.add_directive("want=warn".parse().unwrap());
     filter = filter.add_directive("tungstenite=warn".parse().unwrap());
     filter = filter.add_directive("arboard=warn".parse().unwrap());
+    filter = filter.add_directive("sqlx::query=warn".parse().unwrap());
 
     let log_exporter = LogExporter::builder().with_http().build()?;
 
@@ -109,7 +110,6 @@ pub fn init_logger(service_name: impl AsRef<str>, verbosity: LevelFilter) -> Res
     let otel_metrics_layer = MetricsLayer::new(meter_provider.clone());
 
     let layer = fmt::layer()
-        .pretty()
         .compact()
         .with_ansi(true)
         .with_level(true)

@@ -10,7 +10,7 @@ use modhost_db::{DbConn, User, get_user_for_token};
 pub async fn get_user_from_req(
     jar: &CookieJar,
     headers: &HeaderMap,
-    conn: &mut DbConn,
+    conn: &DbConn,
 ) -> Result<User> {
     let token = if let Some(value) = headers.get("Authorization") {
         let val = value.to_str()?;

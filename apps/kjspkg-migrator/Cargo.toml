@@ -10,8 +10,6 @@ readme.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-diesel.workspace = true
-diesel-async.workspace = true
 dotenvy.workspace = true
 flate2.workspace = true
 http-body-util.workspace = true
@@ -28,3 +26,4 @@ sha-1.workspace = true
 tar.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+sea-orm.workspace = true

@@ -1,6 +1,10 @@
 //! The download gallery image route.
 
-use axum::extract::{Path, State};
+use axum::{
+    extract::{Path, State},
+    http::header::CONTENT_TYPE,
+    response::Response,
+};
 use modhost_core::Result;
 use modhost_db::get_gallery_image;
 use modhost_db_util::gallery::get_image;
@@ -26,9 +30,17 @@ use modhost_server_core::state::AppState;
 pub async fn download_handler(
     Path((_project, id)): Path<(String, String)>,
     State(state): State<AppState>,
-) -> Result<Vec<u8>> {
-    let mut conn = state.pool.get().await?;
-    let img = get_gallery_image(id, &mut conn).await?;
+) -> Result<Response> {
+    let img = get_gallery_image(id, &state.db).await?;
+    let bytes = get_image(img.s3_id, &state.buckets.gallery).await?;
+    let ty = imghdr::from_bytes(&bytes);
 
-    get_image(img.s3_id, &state.buckets.gallery).await
+    let mime = match ty {
+        Some(it) => format!("image/{}", it.ext()),
+        None => "application/octet-stream".into(),
+    };
+
+    Ok(Response::builder()
+        .header(CONTENT_TYPE, mime)
+        .body(bytes.into())?)
 }

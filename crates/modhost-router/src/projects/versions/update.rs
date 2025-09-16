@@ -9,13 +9,12 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, update};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{ProjectAuthor, ProjectVersion, get_version, project_authors, project_versions};
+use modhost_db::{ProjectVersion, get_version, prelude::ProjectAuthors};
 use modhost_db_util::projects::get_project;
 use modhost_server_core::state::AppState;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel, ModelTrait};
 use semver::Version;
 
 /// Information for updaing a project version.
@@ -72,16 +71,10 @@ pub async fn update_handler(
     State(state): State<AppState>,
     Json(data): Json<PartialProjectVersion>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(project, &mut conn).await?;
-    let ver = get_version(pkg.id, version, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(project, &state.db).await?;
+    let ver = get_version(pkg.id, version, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -93,27 +86,33 @@ pub async fn update_handler(
         Version::parse(ver_num)?;
     }
 
-    let ver = update(project_versions::table)
-        .filter(project_versions::id.eq(ver.id))
-        .set((
-            project_versions::name.eq(data.name.unwrap_or(ver.name)),
-            project_versions::version_number.eq(data.version_number.unwrap_or(ver.version_number)),
-            project_versions::changelog.eq(data.changelog.map(Some).unwrap_or(ver.changelog)),
-            project_versions::loaders.eq(data
-                .loaders
-                .map(|v| v.iter().map(|v| Some(v.clone())).collect::<Vec<_>>())
-                .unwrap_or(ver.loaders)),
-            project_versions::game_versions.eq(data
-                .game_versions
-                .map(|v| v.iter().map(|v| Some(v.clone())).collect::<Vec<_>>())
-                .unwrap_or(ver.game_versions)),
-            project_versions::updated_at.eq(Utc::now().naive_utc()),
-        ))
-        .returning(ProjectVersion::as_select())
-        .get_result(&mut conn)
-        .await?;
+    let mut ver = ver.into_active_model();
 
-    state.search.update_project(pkg.id, &mut conn).await?;
+    if let Some(name) = data.name {
+        ver.name = Set(name);
+    }
+
+    if let Some(num) = data.version_number {
+        ver.version_number = Set(num);
+    }
+
+    if let Some(changelog) = data.changelog {
+        ver.changelog = Set(Some(changelog));
+    }
+
+    if let Some(loaders) = data.loaders {
+        ver.loaders = Set(loaders);
+    }
+
+    if let Some(vers) = data.game_versions {
+        ver.game_versions = Set(vers);
+    }
+
+    ver.updated_at = Set(Utc::now().naive_utc());
+
+    let ver = ver.update(&state.db).await?;
+
+    state.search.update_project(pkg.id, &state.db).await?;
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")

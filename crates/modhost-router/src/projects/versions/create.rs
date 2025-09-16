@@ -8,19 +8,44 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, insert_into, update};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::{AppError, Result};
-use modhost_db::{
-    NewProjectFile, NewProjectVersion, Project, ProjectAuthor, ProjectFile, ProjectVersion,
-    ProjectVersionInit, project_authors, project_versions, projects, version_files,
-};
+use modhost_db::{ProjectVersion, prelude::ProjectAuthors, project_versions, version_files};
 use modhost_db_util::projects::get_project;
 use modhost_server_core::state::AppState;
 use object_store::{ObjectStore, PutPayload};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel, ModelTrait};
 use semver::Version;
 use sha1::{Digest, Sha1};
+
+/// The initial data for creating a new project version.
+/// This should be formatted as "multipart/form-data".
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema, ToResponse)]
+pub struct ProjectVersionInit {
+    /// The name of the project version.
+    pub name: String,
+
+    /// The version number.
+    pub version_number: String,
+
+    /// An optional changelog.
+    pub changelog: Option<String>,
+
+    /// A list of loaders this version works on.
+    /// This should be a comma-separated list in the request.
+    pub loaders: String,
+
+    /// A list of game versions this works on.
+    /// This should be a comma-separated list in the request.
+    pub game_versions: String,
+
+    /// The file name.
+    pub file_name: String,
+
+    /// The file content.
+    #[schema(content_media_type = "application/octet-stream")]
+    pub file: Vec<u8>,
+}
 
 /// Upload Project Version
 ///
@@ -46,15 +71,9 @@ pub async fn create_handler(
     State(state): State<AppState>,
     mut data: Multipart,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(id, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(id, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -81,7 +100,7 @@ pub async fn create_handler(
                         .text()
                         .await?
                         .split(",")
-                        .map(|v| Some(v.to_string()))
+                        .map(|v| v.to_string())
                         .collect::<Vec<_>>(),
                 )
             }
@@ -91,7 +110,7 @@ pub async fn create_handler(
                         .text()
                         .await?
                         .split(",")
-                        .map(|v| Some(v.to_string()))
+                        .map(|v| v.to_string())
                         .collect::<Vec<_>>(),
                 )
             }
@@ -154,45 +173,36 @@ pub async fn create_handler(
         )
         .await?;
 
-    let data = NewProjectVersion {
-        project: pkg.id,
-        name,
-        version_number,
-        changelog,
-        loaders,
-        game_versions,
-        downloads: 0,
+    let data = project_versions::ActiveModel {
+        project: Set(pkg.id),
+        name: Set(name),
+        version_number: Set(version_number),
+        changelog: Set(changelog),
+        loaders: Set(loaders),
+        game_versions: Set(game_versions),
+        downloads: Set(0),
+        ..Default::default()
     };
 
-    update(projects::table)
-        .filter(projects::id.eq(pkg.id))
-        .set(projects::updated_at.eq(Utc::now().naive_utc()))
-        .returning(Project::as_returning())
-        .get_result(&mut conn)
-        .await
-        .unwrap();
+    let mut pkg = pkg.into_active_model();
 
-    let ver = insert_into(project_versions::table)
-        .values(&data)
-        .returning(ProjectVersion::as_returning())
-        .get_result(&mut conn)
-        .await?;
+    pkg.updated_at = Set(Utc::now().naive_utc());
 
-    let file = NewProjectFile {
-        file_name,
-        sha1: file_id.clone(),
-        s3_id: file_id,
-        version_id: ver.id,
-        size: file_size,
+    let pkg = pkg.update(&state.db).await?;
+    let ver = data.insert(&state.db).await?;
+
+    let file = version_files::ActiveModel {
+        file_name: Set(file_name),
+        sha1: Set(file_id.clone()),
+        s3_id: Set(file_id),
+        version_id: Set(ver.id),
+        size: Set(file_size),
+        ..Default::default()
     };
 
-    insert_into(version_files::table)
-        .values(&file)
-        .returning(ProjectFile::as_returning())
-        .get_result(&mut conn)
-        .await?;
+    file.insert(&state.db).await?;
 
-    state.search.update_project(pkg.id, &mut conn).await?;
+    state.search.update_project(pkg.id, &state.db).await?;
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")

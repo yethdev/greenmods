@@ -9,16 +9,12 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, update};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{
-    GalleryImage, ProjectAuthor, PublicGalleryImage, gallery_images, get_gallery_image,
-    project_authors,
-};
+use modhost_db::{PublicGalleryImage, get_gallery_image, prelude::ProjectAuthors};
 use modhost_db_util::{gallery::transform_gallery_image, projects::get_project};
 use modhost_server_core::state::AppState;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel, ModelTrait};
 
 /// Data for updating a gallery image.
 #[derive(
@@ -65,16 +61,10 @@ pub async fn update_handler(
     State(state): State<AppState>,
     Json(data): Json<PartialGalleryImage>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(project, &mut conn).await?;
-    let img = get_gallery_image(image, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(project, &state.db).await?;
+    let img = get_gallery_image(image, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -82,17 +72,23 @@ pub async fn update_handler(
             .body(Body::empty())?);
     }
 
-    let img = update(gallery_images::table)
-        .filter(gallery_images::id.eq(img.id))
-        .set((
-            gallery_images::name.eq(data.name.unwrap_or(img.name)),
-            gallery_images::ordering.eq(data.ordering.unwrap_or(img.ordering)),
-            gallery_images::description.eq(data.description.map(Some).unwrap_or(img.description)),
-            gallery_images::updated_at.eq(Utc::now().naive_utc()),
-        ))
-        .returning(GalleryImage::as_select())
-        .get_result(&mut conn)
-        .await?;
+    let mut img = img.into_active_model();
+
+    if let Some(name) = data.name {
+        img.name = Set(name);
+    }
+
+    if let Some(ordering) = data.ordering {
+        img.ordering = Set(ordering);
+    }
+
+    if let Some(desc) = data.description {
+        img.description = Set(Some(desc));
+    }
+
+    img.updated_at = Set(Utc::now().naive_utc());
+
+    let img = img.update(&state.db).await?;
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")

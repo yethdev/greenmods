@@ -34,14 +34,13 @@ pub async fn list_handler(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<Vec<ProjectData>>> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user(id, &mut conn).await?;
+    let user = get_user(id, &state.db).await?;
 
     Ok(Json(
         get_user_projects(
-            get_user_from_req(&jar, &headers, &mut conn).await.ok(),
+            get_user_from_req(&jar, &headers, &state.db).await.ok(),
             user.id,
-            &mut conn,
+            &state.db,
         )
         .await?,
     ))

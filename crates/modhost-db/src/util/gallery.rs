@@ -1,16 +1,20 @@
 //! Utilities for gallery images.
 
-use crate::{DbConn, GalleryImage, Result, gallery_images};
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-use diesel_async::RunQueryDsl;
+use migration::sea_orm::EntityTrait;
+use modhost_core::{AppError, Result};
+use modhost_entities::{gallery_images, prelude::GalleryImages};
+
+use crate::DbConn;
 
 /// Get a gallery image from the databasse by its ID.
-pub async fn get_gallery_image(id: impl AsRef<str>, conn: &mut DbConn) -> Result<GalleryImage> {
+pub async fn get_gallery_image(
+    id: impl AsRef<str>,
+    conn: &DbConn,
+) -> Result<gallery_images::Model> {
     let id = id.as_ref().parse::<i32>()?;
 
-    Ok(gallery_images::table
-        .filter(gallery_images::id.eq(id))
-        .select(GalleryImage::as_select())
-        .first(conn)
-        .await?)
+    GalleryImages::find_by_id(id)
+        .one(conn)
+        .await?
+        .ok_or(AppError::NotFound)
 }

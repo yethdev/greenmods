@@ -5,9 +5,7 @@ use itertools::Itertools;
 use modhost_db::{Project, ProjectData, ProjectVersion, ProjectVisibility, User};
 
 /// A project for search indexing.
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, ToSchema, ToResponse,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, ToResponse)]
 pub struct MeiliProject {
     /// The project's ID.
     pub id: i32,
@@ -71,9 +69,7 @@ pub struct MeiliProject {
 }
 
 /// The search results type.
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, ToSchema, ToResponse,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, ToResponse)]
 pub struct SearchResults {
     /// The page number requested.
     pub page: usize,
@@ -114,18 +110,16 @@ impl MeiliProject {
             loaders: versions
                 .iter()
                 .flat_map(|v| v.loaders.clone())
-                .flatten()
                 .sorted()
                 .dedup()
                 .collect_vec(),
             game_versions: versions
                 .iter()
                 .flat_map(|v| v.game_versions.clone())
-                .flatten()
                 .sorted()
                 .dedup()
                 .collect_vec(),
-            tags: pkg.tags.into_iter().flatten().collect_vec(),
+            tags: pkg.tags,
             authors,
             versions,
         }

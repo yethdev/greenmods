@@ -8,20 +8,15 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, update};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{
-    Project, ProjectAuthor, ProjectData, ProjectVisibility, project_authors, projects,
-};
+use modhost_db::{ProjectData, ProjectVisibility, prelude::ProjectAuthors};
 use modhost_db_util::projects::{get_full_project, get_project};
 use modhost_server_core::state::AppState;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel, ModelTrait};
 
 /// A partial project for updating a project.
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema, ToResponse, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, ToSchema, ToResponse, Serialize, Deserialize)]
 pub struct PartialProject {
     /// The display name of the project.
     #[serde(default)]
@@ -84,15 +79,9 @@ pub async fn update_handler(
     State(state): State<AppState>,
     Json(data): Json<PartialProject>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(id, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(id, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -100,31 +89,67 @@ pub async fn update_handler(
             .body(Body::empty())?);
     }
 
-    let pkg = update(projects::table)
-        .filter(projects::id.eq(pkg.id))
-        .set((
-            projects::name.eq(data.name.unwrap_or(pkg.name)),
-            projects::readme.eq(data.readme.unwrap_or(pkg.readme)),
-            projects::description.eq(data.description.unwrap_or(pkg.description)),
-            projects::source.eq(data.source.map(Some).unwrap_or(pkg.source)),
-            projects::issues.eq(data.issues.map(Some).unwrap_or(pkg.issues)),
-            projects::wiki.eq(data.wiki.map(Some).unwrap_or(pkg.wiki)),
-            projects::visibility.eq(data.visibility.unwrap_or(pkg.visibility)),
-            projects::license.eq(data.license.map(Some).unwrap_or(pkg.license)),
-            projects::tags.eq(data
-                .tags
-                .map(|v| v.into_iter().map(Some).collect::<Vec<_>>())
-                .unwrap_or(pkg.tags)),
-        ))
-        .returning(Project::as_select())
-        .get_result(&mut conn)
-        .await?;
+    let mut pkg = pkg.into_active_model();
 
-    state.search.update_project(pkg.id, &mut conn).await?;
+    if let Some(name) = data.name {
+        pkg.name = Set(name);
+    }
+
+    if let Some(readme) = data.readme {
+        pkg.readme = Set(readme);
+    }
+
+    if let Some(description) = data.description {
+        pkg.description = Set(description);
+    }
+
+    if let Some(source) = data.source {
+        if source.is_empty() {
+            pkg.source = Set(None);
+        } else {
+            pkg.source = Set(Some(source));
+        }
+    }
+
+    if let Some(issues) = data.issues {
+        if issues.is_empty() {
+            pkg.issues = Set(None);
+        } else {
+            pkg.issues = Set(Some(issues));
+        }
+    }
+
+    if let Some(wiki) = data.wiki {
+        if wiki.is_empty() {
+            pkg.wiki = Set(None);
+        } else {
+            pkg.wiki = Set(Some(wiki));
+        }
+    }
+
+    if let Some(visibility) = data.visibility {
+        pkg.visibility = Set(visibility);
+    }
+
+    if let Some(license) = data.license {
+        if license.is_empty() {
+            pkg.license = Set(None);
+        } else {
+            pkg.license = Set(Some(license));
+        }
+    }
+
+    if let Some(tags) = data.tags {
+        pkg.tags = Set(tags);
+    }
+
+    let pkg = pkg.update(&state.db).await?;
+
+    state.search.update_project(pkg.id, &state.db).await?;
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")
         .body(Body::new(serde_json::to_string(
-            &get_full_project(pkg.id.to_string(), &mut conn).await?,
+            &get_full_project(pkg.id.to_string(), &state.db).await?,
         )?))?)
 }

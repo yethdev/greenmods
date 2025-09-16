@@ -10,8 +10,6 @@ readme.workspace = true
 
 [dependencies]
 chrono.workspace = true
-diesel.workspace = true
-diesel-async.workspace = true
 itertools.workspace = true
 meilisearch-sdk.workspace = true
 modhost-config.workspace = true
@@ -19,3 +17,4 @@ modhost-core = { workspace = true, features = ["anyhow", "chrono", "meilisearch"
 modhost-db.workspace = true
 serde.workspace = true
 utoipa.workspace = true
+sea-orm.workspace = true

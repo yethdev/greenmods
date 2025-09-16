@@ -9,6 +9,9 @@ import {
     PUBLIC_SHOW_BETA,
     PUBLIC_TAGLINE,
     PUBLIC_THEME_COLOR,
+    PUBLIC_SHOW_COMMIT,
+    PUBLIC_MODHOST_COMMIT,
+    PUBLIC_MODHOST_ORIGIN,
 } from "$env/static/public";
 
 export interface SiteConfig {
@@ -20,6 +23,9 @@ export interface SiteConfig {
     packageFileFormats: string[];
     betaName: "beta" | "snapshot";
     themeColor: string;
+    showCommit: boolean;
+    commit?: string;
+    origin?: string;
 }
 
 export const siteConfig: SiteConfig = {
@@ -31,4 +37,7 @@ export const siteConfig: SiteConfig = {
     packageFileFormats: PUBLIC_PKG_FILE_FORMATS.split(","),
     betaName: PUBLIC_GAME_BETA_NAME as "beta" | "snapshot",
     themeColor: PUBLIC_THEME_COLOR,
+    showCommit: PUBLIC_SHOW_COMMIT == "true",
+    commit: PUBLIC_MODHOST_COMMIT.trim() == "" ? undefined : PUBLIC_MODHOST_COMMIT.trim(),
+    origin: PUBLIC_MODHOST_ORIGIN.trim() == "" ? undefined : PUBLIC_MODHOST_ORIGIN.trim(),
 };

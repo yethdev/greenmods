@@ -7,14 +7,17 @@ use axum::{
     response::Response,
 };
 use axum_extra::extract::CookieJar;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, delete};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::Result;
-use modhost_db::{ProjectAuthor, ProjectFile, project_authors, project_versions, version_files};
-use modhost_db_util::{projects::get_project, vers::get_full_version};
+use modhost_db::{
+    get_version,
+    prelude::{ProjectAuthors, VersionFiles},
+    version_files,
+};
+use modhost_db_util::projects::get_project;
 use modhost_server_core::state::AppState;
 use object_store::ObjectStore;
+use sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 
 /// Delete Project Version
 ///
@@ -41,16 +44,11 @@ pub async fn delete_handler(
     Path((project, version)): Path<(String, String)>,
     State(state): State<AppState>,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(project, &mut conn).await?;
-    let ver = get_full_version(pkg.id, version, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(project, &state.db).await?;
+    let ver = get_version(pkg.id, version, &state.db).await?;
+    let files = ver.find_related(VersionFiles).all(&state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -58,11 +56,10 @@ pub async fn delete_handler(
             .body(Body::empty())?);
     }
 
-    for file in ver.files {
-        let all_referencing = version_files::table
-            .filter(version_files::s3_id.eq(file.s3_id.clone()))
-            .select(ProjectFile::as_select())
-            .load(&mut conn)
+    for file in files {
+        let all_referencing = VersionFiles::find()
+            .filter(version_files::Column::S3Id.eq(file.s3_id.clone()))
+            .all(&state.db)
             .await?;
 
         if all_referencing.len() <= 1 {
@@ -72,14 +69,12 @@ pub async fn delete_handler(
                 .delete(&format!("/{}", file.s3_id).into())
                 .await?;
         }
+
+        // We don't manually delete the file here because CASCADE will take care of it.
     }
 
-    delete(project_versions::table)
-        .filter(project_versions::id.eq(ver.id))
-        .execute(&mut conn)
-        .await?;
-
-    state.search.update_project(pkg.id, &mut conn).await?;
+    ver.delete(&state.db).await?;
+    state.search.update_project(pkg.id, &state.db).await?;
 
     Ok(Response::builder().body(Body::new(
         "Deleted project version successfully!".to_string(),

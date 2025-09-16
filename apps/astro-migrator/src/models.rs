@@ -1,13 +1,11 @@
 use anyhow::Result;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use diesel::{SelectableHelper, insert_into};
-use diesel_async::RunQueryDsl;
 use modhost_db::{
-    DbConn, NewGalleryImage, NewProject, NewProjectFile, NewProjectVersion, Project, ProjectAuthor,
-    ProjectVersion, ProjectVisibility, gallery_images, project_authors, project_versions, projects,
-    version_files,
+    DbConn, Project, ProjectVersion, ProjectVisibility, gallery_images, project_authors,
+    project_versions, projects, version_files,
 };
 use object_store::{ObjectStore, PutPayload, aws::AmazonS3};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set};
 use serde::{Deserialize, Serialize};
 use serde_this_or_that::{as_bool, as_i64};
 use sha1::{Digest, Sha1};
@@ -197,92 +195,78 @@ impl Version {
     pub async fn as_ver(
         self,
         pkg: &Project,
-        db: &mut DbConn,
+        db: &DbConn,
         bucket: &AmazonS3,
     ) -> Result<ProjectVersion> {
         let (id, size) = self.upload(bucket).await?;
         let file_name = self.release_file_name.clone();
         let ver = self.into_ver(pkg);
+        let ver = ver.insert(db).await?;
 
-        let ver = insert_into(project_versions::table)
-            .values(ver)
-            .returning(ProjectVersion::as_returning())
-            .get_result(db)
-            .await?;
-
-        let file = NewProjectFile {
-            file_name,
-            s3_id: id.clone(),
-            sha1: id,
-            version_id: ver.id,
-            size,
-        };
-
-        insert_into(version_files::table)
-            .values(file)
-            .execute(db)
-            .await?;
+        version_files::ActiveModel {
+            file_name: Set(file_name),
+            s3_id: Set(id.clone()),
+            sha1: Set(id),
+            version_id: Set(ver.id),
+            size: Set(size),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
 
         Ok(ver)
     }
 
-    pub fn into_ver(self, pkg: &Project) -> NewProjectVersion {
-        NewProjectVersion {
-            project: pkg.id,
-            name: self.version.clone(),
-            version_number: self.version,
-            changelog: Some("Migrated from astroneermods.space.".into()),
-            loaders: vec![Some("AstroModIntegrator".into())],
-            game_versions: vec![Some(self.astro_build)],
-            downloads: 0,
+    pub fn into_ver(self, pkg: &Project) -> project_versions::ActiveModel {
+        project_versions::ActiveModel {
+            project: Set(pkg.id),
+            name: Set(self.version.clone()),
+            version_number: Set(self.version),
+            changelog: Set(Some("Migrated from astroneermods.space.".into())),
+            loaders: Set(vec!["AstroModIntegrator".into()]),
+            game_versions: Set(vec![self.astro_build]),
+            downloads: Set(0),
+            ..Default::default()
         }
     }
 }
 
 impl Mod {
-    pub fn into_pkg(self) -> NewProject {
-        NewProject {
-            slug: self.mod_id,
-            name: self.name,
-            readme: format!("{}{}", DESC_PREFIX, self.description),
-            description: self.short_description,
-            source: None,
-            issues: None,
-            wiki: None,
-            tags: self.tags.into_iter().map(Some).collect(),
-            visibility: if self.published {
+    pub fn into_pkg(self) -> projects::ActiveModel {
+        projects::ActiveModel {
+            slug: Set(self.mod_id),
+            name: Set(self.name),
+            readme: Set(format!("{}{}", DESC_PREFIX, self.description)),
+            description: Set(self.short_description),
+            source: Set(None),
+            issues: Set(None),
+            wiki: Set(None),
+            tags: Set(self.tags),
+            visibility: Set(if self.published {
                 ProjectVisibility::Public
             } else {
                 ProjectVisibility::Private
-            },
-            license: Some(self.license),
+            }),
+            license: Set(Some(self.license)),
+            ..Default::default()
         }
     }
 
     pub async fn upload_all(
         self,
         user_id: i32,
-        db: &mut DbConn,
+        db: &DbConn,
         bucket: &AmazonS3,
         imgs: &AmazonS3,
     ) -> Result<(Project, Vec<ProjectVersion>)> {
-        let pkg = self.clone().into_pkg();
+        let pkg = self.clone().into_pkg().insert(db).await?;
 
-        let pkg = insert_into(projects::table)
-            .values(pkg)
-            .returning(Project::as_returning())
-            .get_result(db)
-            .await?;
-
-        let author = ProjectAuthor {
-            user_id,
-            project: pkg.id,
-        };
-
-        insert_into(project_authors::table)
-            .values(author)
-            .execute(db)
-            .await?;
+        project_authors::ActiveModel {
+            user_id: Set(user_id),
+            project: Set(pkg.id),
+        }
+        .insert(db)
+        .await?;
 
         let imgs_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("mods")
@@ -304,18 +288,16 @@ impl Mod {
             )
             .await?;
 
-            let img_data = NewGalleryImage {
-                name: self.mod_id.clone(),
-                description: None,
-                ordering: 0, // We want this to be first, but easily allow the user to override it.
-                project: pkg.id,
-                s3_id: img_id,
-            };
-
-            insert_into(gallery_images::table)
-                .values(img_data)
-                .execute(db)
-                .await?;
+            gallery_images::ActiveModel {
+                name: Set(self.mod_id.clone()),
+                description: Set(None),
+                ordering: Set(0), // We want this to be first, but easily allow the user to override it.
+                project: Set(pkg.id),
+                s3_id: Set(img_id),
+                ..Default::default()
+            }
+            .insert(db)
+            .await?;
         } else {
             println!("No image: {}", self.mod_id);
         }

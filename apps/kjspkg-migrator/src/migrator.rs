@@ -5,18 +5,16 @@ use crate::{
     fetcher::{get_github_owner, get_manifest, get_package_tarball, get_packages_map, get_readme},
 };
 use anyhow::Result;
-use diesel::{SelectableHelper, insert_into};
-use diesel_async::RunQueryDsl;
 use indicatif::ProgressIterator;
 use modhost::init_logger;
 use modhost_config::get_config;
 use modhost_db::{
-    NewProject, NewProjectFile, NewProjectVersion, NewUser, Project, ProjectAuthor, ProjectVersion,
-    ProjectVisibility, User, create_connection, project_authors, project_versions, projects,
-    run_migrations, users, version_files,
+    ProjectVisibility, create_connection, fresh_migrations, prelude::Users, project_authors,
+    project_versions, projects, users, version_files,
 };
 use object_store::{ObjectStore, PutPayload};
 use octocrab::Octocrab;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 use sha1::{Digest, Sha1};
 use tracing::level_filters::LevelFilter;
 
@@ -30,9 +28,8 @@ pub async fn run() -> Result<()> {
     let config = get_config()?;
     let pool = create_connection(Some(config.postgres.uri())).await?;
 
-    run_migrations(&pool).await?;
+    fresh_migrations(&pool).await?;
 
-    let mut conn = pool.get().await?;
     let pkgs = config.storage.projects()?;
     // let imgs = config.storage.gallery()?;
     let octocrab = Octocrab::builder().personal_token(token).build()?;
@@ -83,52 +80,55 @@ pub async fn run() -> Result<()> {
                 get_package_tarball(&octocrab, owner, repo, &branch, &dir).await?;
 
             if let std::collections::hash_map::Entry::Vacant(e) = added_users.entry(author_id) {
-                let user = NewUser {
-                    github_id: author_id as i32,
-                    username: author_name,
-                    admin: false,
-                    moderator: false,
+                let user = users::ActiveModel {
+                    github_id: Set(author_id as i32),
+                    username: Set(author_name),
+                    admin: Set(false),
+                    moderator: Set(false),
+                    ..Default::default()
                 };
 
-                let user: User = insert_into(users::table)
-                    .values(user)
-                    .returning(User::as_returning())
-                    .get_result(&mut conn)
+                Users::insert(user)
+                    .on_conflict_do_nothing()
+                    .exec(&pool)
                     .await?;
+
+                let user = Users::find()
+                    .filter(users::Column::GithubId.eq(author_id as i32))
+                    .one(&pool)
+                    .await?
+                    .unwrap();
 
                 e.insert(user.id);
             }
 
             let user_id = *added_users.get(&author_id).unwrap();
 
-            let project = NewProject {
-                slug: id.clone(),
-                name: id.clone(),
-                description: manifest.description,
-                issues: Some(format!("https://github.com/{}/{}/issues", owner, repo)),
-                source: Some(format!("https://github.com/{}/{}", owner, repo)),
-                wiki: Some(format!("https://github.com/{}/{}/wiki", owner, repo)),
-                license: None,
-                readme,
-                tags: Vec::new(),
-                visibility: ProjectVisibility::Public,
-            };
+            let project = projects::ActiveModel {
+                slug: Set(id.clone()),
+                name: Set(id.clone()),
+                description: Set(manifest.description),
+                issues: Set(Some(format!(
+                    "https://github.com/{}/{}/issues",
+                    owner, repo
+                ))),
+                source: Set(Some(format!("https://github.com/{}/{}", owner, repo))),
+                wiki: Set(Some(format!("https://github.com/{}/{}/wiki", owner, repo))),
+                license: Set(None),
+                readme: Set(readme),
+                tags: Set(Vec::new()),
+                visibility: Set(ProjectVisibility::Public),
+                ..Default::default()
+            }
+            .insert(&pool)
+            .await?;
 
-            let project: Project = insert_into(projects::table)
-                .values(project)
-                .returning(Project::as_returning())
-                .get_result(&mut conn)
-                .await?;
-
-            let author = ProjectAuthor {
-                project: project.id,
-                user_id,
-            };
-
-            insert_into(project_authors::table)
-                .values(author)
-                .execute(&mut conn)
-                .await?;
+            project_authors::ActiveModel {
+                project: Set(project.id),
+                user_id: Set(user_id),
+            }
+            .insert(&pool)
+            .await?;
 
             let mut hasher = Sha1::new();
 
@@ -143,39 +143,33 @@ pub async fn run() -> Result<()> {
             )
             .await?;
 
-            let version = NewProjectVersion {
-                name: (&commit[0..7]).into(),
-                version_number: format!("0.0.0+{}", &commit[0..7]),
-                changelog: Some("Migrated from the old KJSPKG.".into()),
-                downloads: 0,
-                loaders: manifest.modloaders.into_iter().map(Some).collect(),
-                project: project.id,
-                game_versions: manifest
+            let version = project_versions::ActiveModel {
+                name: Set((&commit[0..7]).into()),
+                version_number: Set(format!("0.0.0+{}", &commit[0..7])),
+                changelog: Set(Some("Migrated from the old KJSPKG.".into())),
+                downloads: Set(0),
+                loaders: Set(manifest.modloaders),
+                project: Set(project.id),
+                game_versions: Set(manifest
                     .versions
                     .into_iter()
                     .filter_map(get_version_str)
-                    .map(Some)
-                    .collect(),
-            };
+                    .collect()),
+                ..Default::default()
+            }
+            .insert(&pool)
+            .await?;
 
-            let version: ProjectVersion = insert_into(project_versions::table)
-                .values(version)
-                .returning(ProjectVersion::as_returning())
-                .get_result(&mut conn)
-                .await?;
-
-            let file = NewProjectFile {
-                version_id: version.id,
-                file_name: format!("{}-{}.tar.gz", id, &commit[0..7]),
-                s3_id: file_id.clone(),
-                sha1: file_id,
-                size: file_size,
-            };
-
-            insert_into(version_files::table)
-                .values(file)
-                .execute(&mut conn)
-                .await?;
+            version_files::ActiveModel {
+                version_id: Set(version.id),
+                file_name: Set(format!("{}-{}.tar.gz", id, &commit[0..7])),
+                s3_id: Set(file_id.clone()),
+                sha1: Set(file_id),
+                size: Set(file_size),
+                ..Default::default()
+            }
+            .insert(&pool)
+            .await?;
         }
     }
 

@@ -58,6 +58,8 @@ modhost_core::utoipa_types![
     projects::versions::update::PartialProjectVersion,
     projects::gallery::create::GalleryImageUpload,
     projects::gallery::update::PartialGalleryImage,
+    projects::versions::create::ProjectVersionInit,
+    projects::create::NewProject,
     util::stats::AdminStats,
     admin::stats_ws::AdminStatsSocketQueryParams,
 ];

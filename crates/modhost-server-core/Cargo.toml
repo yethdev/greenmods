@@ -12,8 +12,6 @@ readme.workspace = true
 axum.workspace = true
 base64.workspace = true
 chrono.workspace = true
-diesel.workspace = true
-diesel-async.workspace = true
 jsglue.workspace = true
 modhost-core = { workspace = true, features = ["glue", "utoipa"] }
 modhost-config.workspace = true
@@ -28,3 +26,4 @@ serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 utoipa.workspace = true
+sea-orm.workspace = true

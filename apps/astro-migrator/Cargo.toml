@@ -11,8 +11,6 @@ readme.workspace = true
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
-diesel.workspace = true
-diesel-async.workspace = true
 indicatif.workspace = true
 itertools.workspace = true
 modhost.workspace = true
@@ -27,3 +25,4 @@ serde-this-or-that.workspace = true
 sha-1.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+sea-orm.workspace = true

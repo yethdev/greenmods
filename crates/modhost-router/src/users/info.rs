@@ -31,7 +31,7 @@ pub async fn info_handler(
 ) -> Result<Response> {
     Ok(
         Response::builder().body(Body::new(serde_json::to_string_pretty(
-            &get_user(id, &mut state.pool.get().await?).await?,
+            &get_user(id, &state.db).await?,
         )?))?,
     )
 }

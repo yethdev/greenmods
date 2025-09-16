@@ -1,18 +1,20 @@
 //! Statistics utilities.
 
-use diesel::QueryDsl;
-use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use modhost_core::{
     Result,
     info::{SysInfo, get_sys_info},
     uptime_secs,
 };
-use modhost_db::{DbConn, gallery_images, project_versions, projects, users, version_files};
+use modhost_db::{
+    DbConn,
+    prelude::{GalleryImages, ProjectVersions, Projects, Users, VersionFiles},
+};
 use modhost_search::{Index, MeiliProject};
 use modhost_server_core::state::AppState;
 use object_store::{ObjectStore, aws::AmazonS3};
 use once_cell::sync::Lazy;
+use sea_orm::{EntityTrait, PaginatorTrait};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::{
     sync::broadcast::{self, Receiver, Sender},
@@ -66,7 +68,7 @@ pub fn start_stats_thread(state: &AppState) -> JoinHandle<Result<()>> {
     let projects_bucket = state.buckets.projects.clone();
     let gallery_bucket = state.buckets.gallery.clone();
     let search_projects = state.search.projects();
-    let pool = state.pool.clone();
+    let db = state.db.clone();
     let mut interval = interval(state.config.admin.stats_interval);
 
     tokio::spawn(async move {
@@ -75,15 +77,8 @@ pub fn start_stats_thread(state: &AppState) -> JoinHandle<Result<()>> {
                 break;
             }
 
-            let mut conn = pool.get().await?;
-
-            let stats = fetch_stats(
-                &projects_bucket,
-                &gallery_bucket,
-                &search_projects,
-                &mut conn,
-            )
-            .await?;
+            let stats =
+                fetch_stats(&projects_bucket, &gallery_bucket, &search_projects, &db).await?;
 
             let _ = STATS_CHANNEL.0.send(stats);
 
@@ -101,7 +96,7 @@ pub async fn fetch_stats(
     projects_bucket: &AmazonS3,
     gallery_bucket: &AmazonS3,
     search_projects: &Index,
-    conn: &mut DbConn,
+    conn: &DbConn,
 ) -> Result<AdminStats> {
     let mut stream = projects_bucket.list(None);
     let mut projects_size_bytes = 0;
@@ -122,18 +117,12 @@ pub async fn fetch_stats(
     }
 
     Ok(AdminStats {
-        projects: projects::table.count().get_result::<i64>(conn).await? as u64,
-        versions: project_versions::table
-            .count()
-            .get_result::<i64>(conn)
-            .await? as u64,
-        files: version_files::table.count().get_result::<i64>(conn).await? as u64,
-        images: gallery_images::table
-            .count()
-            .get_result::<i64>(conn)
-            .await? as u64,
+        projects: Projects::find().count(conn).await?,
+        versions: ProjectVersions::find().count(conn).await?,
+        files: VersionFiles::find().count(conn).await?,
+        images: GalleryImages::find().count(conn).await?,
         indexed_projects: search_projects.get_documents::<MeiliProject>().await?.total as u64,
-        users: users::table.count().get_result::<i64>(conn).await? as u64,
+        users: Users::find().count(conn).await?,
         uptime_secs: uptime_secs(),
         projects_size_bytes,
         gallery_size_bytes,

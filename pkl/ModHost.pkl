@@ -157,6 +157,10 @@ class UIConfig {
     /// Defaults to `true`.
     show_beta: Boolean = true
 
+    /// Show the commit/repo the instance of ModHost was built from.
+    /// Defaults to `true`.
+    show_commit: Boolean = true
+
     /// The default theme to apply if unset when a user loads the page.
     /// Defaults to `"modhost"`.
     default_theme: String = "modhost"
@@ -241,6 +245,7 @@ class RealUIConfig {
     theme_color: String
     badge_base: String
     badge_secondary: String
+    show_commit: Boolean
 }
 
 class RealMeilisearchConfig {
@@ -277,6 +282,7 @@ function fixUIConfig(cfg: UIConfig): RealUIConfig = new {
     theme_color = cfg.theme_color
     badge_base = cfg.badge_base
     badge_secondary = cfg.badge_secondary
+    show_commit = cfg.show_commit
 }
 
 function fixMeilisearchConfig(cfg: MeilisearchConfig): RealMeilisearchConfig = new {

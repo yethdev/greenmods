@@ -8,17 +8,13 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper, insert_into, update};
-use diesel_async::RunQueryDsl;
 use modhost_auth::get_user_from_req;
 use modhost_core::{AppError, Result};
-use modhost_db::{
-    GalleryImage, NewGalleryImage, Project, ProjectAuthor, PublicGalleryImage, gallery_images,
-    project_authors, projects,
-};
+use modhost_db::{PublicGalleryImage, gallery_images, prelude::ProjectAuthors};
 use modhost_db_util::{gallery::transform_gallery_image, projects::get_project};
 use modhost_server_core::state::AppState;
 use object_store::{ObjectStore, PutPayload};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel, ModelTrait};
 use sha1::{Digest, Sha1};
 
 /// The data for uploading a gallery image.
@@ -68,15 +64,9 @@ pub async fn create_handler(
     State(state): State<AppState>,
     mut data: Multipart,
 ) -> Result<Response> {
-    let mut conn = state.pool.get().await?;
-    let user = get_user_from_req(&jar, &headers, &mut conn).await?;
-    let pkg = get_project(id, &mut conn).await?;
-
-    let authors = project_authors::table
-        .filter(project_authors::project.eq(pkg.id))
-        .select(ProjectAuthor::as_select())
-        .load(&mut conn)
-        .await?;
+    let user = get_user_from_req(&jar, &headers, &state.db).await?;
+    let pkg = get_project(id, &state.db).await?;
+    let authors = pkg.find_related(ProjectAuthors).all(&state.db).await?;
 
     if !authors.iter().any(|v| v.user_id == user.id) && !user.admin {
         return Ok(Response::builder()
@@ -127,27 +117,21 @@ pub async fn create_handler(
         )
         .await?;
 
-    let data = NewGalleryImage {
-        project: pkg.id,
-        name,
-        description,
-        ordering,
-        s3_id: file_name,
+    let data = gallery_images::ActiveModel {
+        project: Set(pkg.id),
+        name: Set(name),
+        description: Set(description),
+        ordering: Set(ordering),
+        s3_id: Set(file_name),
+        ..Default::default()
     };
 
-    update(projects::table)
-        .filter(projects::id.eq(pkg.id))
-        .set(projects::updated_at.eq(Utc::now().naive_utc()))
-        .returning(Project::as_returning())
-        .get_result(&mut conn)
-        .await
-        .unwrap();
+    let mut pkg = pkg.into_active_model();
 
-    let image = insert_into(gallery_images::table)
-        .values(&data)
-        .returning(GalleryImage::as_returning())
-        .get_result(&mut conn)
-        .await?;
+    pkg.updated_at = Set(Utc::now().naive_utc());
+    pkg.update(&state.db).await?;
+
+    let image = data.insert(&state.db).await?;
 
     Ok(Response::builder()
         .header("Content-Type", "application/json")
