@@ -110,7 +110,6 @@ pub fn init_logger(service_name: impl AsRef<str>, verbosity: LevelFilter) -> Res
     let otel_metrics_layer = MetricsLayer::new(meter_provider.clone());
 
     let layer = fmt::layer()
-        .pretty()
         .compact()
         .with_ansi(true)
         .with_level(true)

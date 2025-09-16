@@ -21,6 +21,7 @@ pub struct Model {
     #[serde(skip_deserializing)]
     pub id: i32,
     pub username: String,
+    #[sea_orm(unique)]
     pub github_id: i32,
     pub admin: bool,
     pub moderator: bool,

@@ -9,12 +9,12 @@ use indicatif::ProgressIterator;
 use modhost::init_logger;
 use modhost_config::get_config;
 use modhost_db::{
-    ProjectVisibility, create_connection, project_authors, project_versions, projects,
-    run_migrations, users, version_files,
+    ProjectVisibility, create_connection, fresh_migrations, prelude::Users, project_authors,
+    project_versions, projects, users, version_files,
 };
 use object_store::{ObjectStore, PutPayload};
 use octocrab::Octocrab;
-use sea_orm::{ActiveModelTrait, ActiveValue::Set};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 use sha1::{Digest, Sha1};
 use tracing::level_filters::LevelFilter;
 
@@ -28,7 +28,7 @@ pub async fn run() -> Result<()> {
     let config = get_config()?;
     let pool = create_connection(Some(config.postgres.uri())).await?;
 
-    run_migrations(&pool).await?;
+    fresh_migrations(&pool).await?;
 
     let pkgs = config.storage.projects()?;
     // let imgs = config.storage.gallery()?;
@@ -88,7 +88,16 @@ pub async fn run() -> Result<()> {
                     ..Default::default()
                 };
 
-                let user = user.insert(&pool).await?;
+                Users::insert(user)
+                    .on_conflict_do_nothing()
+                    .exec(&pool)
+                    .await?;
+
+                let user = Users::find()
+                    .filter(users::Column::GithubId.eq(author_id as i32))
+                    .one(&pool)
+                    .await?
+                    .unwrap();
 
                 e.insert(user.id);
             }

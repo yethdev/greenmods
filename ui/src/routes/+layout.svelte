@@ -184,6 +184,13 @@
                     class="anchor no-underline"
                     target="_blank">ModHost</a
                 >
+                {#if siteConfig.showCommit && siteConfig.origin && siteConfig.commit}
+                    (<a
+                        href="{siteConfig.origin}/commit/{siteConfig.commit}"
+                        class="anchor no-underline"
+                        target="_blank">{siteConfig.commit}</a
+                    >)
+                {/if}
             </span>
         </footer>
     </div>

@@ -14,6 +14,12 @@ pub mod info;
 
 pub use error::*;
 
+/// The git commit this version of ModHost was built at, or blank if none.
+pub const COMMIT: &str = env!("__MH_GIT_COMMIT");
+
+/// The git repo this version of ModHost was built from, or blank if none.
+pub const ORIGIN: &str = env!("__MH_GIT_ORIGIN");
+
 /// The time the server started up.
 #[cfg(feature = "chrono")]
 static mut START_TIME: chrono::DateTime<chrono::Utc> = chrono::DateTime::UNIX_EPOCH;
