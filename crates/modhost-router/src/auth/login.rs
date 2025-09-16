@@ -54,16 +54,16 @@ pub async fn login_handler(
         .auth
         .set_redirect_uri(RedirectUrl::new(callback_url).unwrap());
 
-    let (mut authorize_url, _) = client
+    let (authorize_url, _) = client
         .authorize_url(CsrfToken::new_random)
         .add_scope(Scope::new("user:email".to_string()))
         .add_scope(Scope::new("read:user".to_string()))
         .add_scope(Scope::new("public_repo".to_string()))
         .url();
 
-    authorize_url
-        .query_pairs_mut()
-        .append_pair("prompt", "consent");
+    // authorize_url
+    //     .query_pairs_mut()
+    //     .append_pair("prompt", "consent");
 
     let mut resp = Response::new(Body::empty());
 
