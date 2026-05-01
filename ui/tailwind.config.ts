@@ -4,6 +4,7 @@ import { skeleton } from "@skeletonlabs/tw-plugin";
 import { join } from "path";
 import type { Config } from "tailwindcss";
 import { modhostTheme } from "./src/themes/modhost";
+import { greenmodsTheme } from "./src/themes/greenmods";
 import { kjspkgTheme } from "./src/themes/kjspkg";
 import { lighterTheme } from "./src/themes/kjspkg-lighter";
 import { gcatTheme } from "./src/themes/kjspkg-gcat";
@@ -48,6 +49,7 @@ const config = {
             themes: {
                 custom: [
                     modhostTheme,
+                    greenmodsTheme,
                     kjspkgTheme,
                     astroTheme,
                     murkyTheme,

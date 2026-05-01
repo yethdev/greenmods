@@ -6,11 +6,11 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UIConfig {
     /// The app name/title.
-    /// Defaults to `"ModHost"`
+    /// Defaults to `"GreenMods"`
     pub app: String,
 
     /// The app tagline.
-    /// Defaults to `"Your home for game mods"`
+    /// Defaults to `"Subnautica 2 mods that say what they support"`
     pub tagline: String,
 
     /// Whether to show the beta badge on the website.
@@ -22,7 +22,7 @@ pub struct UIConfig {
     pub project_kind: ProjectKind,
 
     /// The default theme to apply if the user hasn't changed it.
-    /// Defaults to `"modhost"`
+    /// Defaults to `"greenmods"`
     pub default_theme: String,
 
     /// The file extensions the frontend allows you to upload.
@@ -44,7 +44,7 @@ pub struct UIConfig {
     pub favicon_ico: String,
 
     /// The CSS theme color for meta tags.
-    /// Defaults to `"#068099"`
+    /// Defaults to `"#16a34a"`
     pub theme_color: String,
 
     /// The base badge color, used in the first part of the badge.
@@ -52,7 +52,7 @@ pub struct UIConfig {
     pub badge_base: String,
 
     /// The secondary badge color, used in the second part of the badge.
-    /// Defaults to `"#068099"`.
+    /// Defaults to `"#16a34a"`.
     pub badge_secondary: String,
 
     /// Show the repo/commit this instance was built from.
@@ -147,11 +147,11 @@ impl UIConfig {
 impl Default for UIConfig {
     fn default() -> Self {
         Self {
-            app: "ModHost".into(),
-            tagline: "Your home for game mods".into(),
+            app: "GreenMods".into(),
+            tagline: "Subnautica 2 mods that say what they support".into(),
             show_beta: true,
             project_kind: ProjectKind::Mods,
-            default_theme: "modhost".into(),
+            default_theme: "greenmods".into(),
             project_file_formats: vec![
                 ".pak".into(),
                 ".jar".into(),
@@ -162,9 +162,9 @@ impl Default for UIConfig {
             game_beta_name: BetaName::Beta,
             favicon_ico: "default".into(),
             favicon_png: "default".into(),
-            theme_color: "#068099".into(),
+            theme_color: "#16a34a".into(),
             badge_base: "#191d28".into(),
-            badge_secondary: "#068099".into(),
+            badge_secondary: "#16a34a".into(),
             show_commit: true,
         }
     }

@@ -5,9 +5,9 @@ members = ["./apps/*", "./crates/*", "./tools/*"]
 [workspace.package]
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/RedstoneWizard08/ModHost"
-homepage = "https://github.com/RedstoneWizard08/ModHost"
-authors = ["RedstoneWizard08"]
+repository = "https://github.com/yethdev/greenmods"
+homepage = "https://github.com/yethdev/greenmods"
+authors = ["yethdev"]
 readme = "README.md"
 
 [workspace.dependencies]

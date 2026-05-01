@@ -154,13 +154,13 @@
         <footer class="flex w-full flex-row items-center justify-between p-2">
             <span class="hidden md:inline">
                 <a
-                    href="https://github.com/RedstoneWizard08/ModHost"
+                    href="https://github.com/yethdev/greenmods"
                     class="anchor no-underline"
                     target="_blank">GitHub</a
                 >
                 &bull;
                 <a
-                    href="https://github.com/RedstoneWizard08/ModHost/wiki"
+                    href="https://github.com/yethdev/greenmods/wiki"
                     class="anchor no-underline"
                     target="_blank">Wiki</a
                 >
@@ -168,13 +168,6 @@
                 <a href="/api/v1/docs/scalar" class="anchor no-underline" target="_blank"
                     >API Docs</a
                 >
-                &bull;
-                <a
-                    href="https://crowdin.com/editor/kjspkg"
-                    class="anchor no-underline"
-                    target="_blank">Crowdin</a
-                >
-                <!-- TODO: Move the crowdin's name to "ModHost" -->
             </span>
 
             <span class="mt-auto hidden text-sm opacity-50 md:inline">

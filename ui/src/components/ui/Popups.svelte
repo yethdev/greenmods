@@ -23,6 +23,7 @@
     }
 
     const themes: (Theme | Divider)[] = [
+        { type: "theme", name: "GreenMods", id: "greenmods" },
         { type: "theme", name: "ModHost", id: "modhost" },
         { type: "theme", name: "KJSPKG", id: "kjspkg" },
         { type: "theme", name: "Astro", id: "astro" },
