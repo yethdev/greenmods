@@ -135,7 +135,9 @@
         </a>
     {:else}
         <a
-            href="/api/v1/auth/github/login?redirect_uri={page.url}"
+            href="/api/v1/auth/github/login?redirect_uri={encodeURIComponent(
+                page.url.pathname + page.url.search,
+            )}"
             class="card variant-glass-tertiary hover:variant-glass-primary flex w-full flex-row items-center justify-start space-x-2 p-2 transition-all"
         >
             <Icon icon="tabler:login" height="24" />

@@ -23,6 +23,6 @@ export const checkClientToken = () => {
 export const beginLogin = (redirect: string) =>
     goto(
         redirect
-            ? `/api/v1/auth/github/login?redirect_uri=${redirect}`
+            ? `/api/v1/auth/github/login?redirect_uri=${encodeURIComponent(redirect)}`
             : "/api/v1/auth/github/login",
     );

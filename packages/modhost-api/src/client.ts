@@ -54,10 +54,6 @@ export class Client {
         headers: Record<string, any> = {},
         body?: Blob | FormData | object | string,
     ) {
-        if (requiresAuth && !this._token) {
-            throw new Error("Request requires authentication but no token was found!");
-        }
-
         const realPath = path.startsWith("/") ? path.substring(1) : path;
 
         const data =
@@ -80,6 +76,7 @@ export class Client {
         return fetch(`${this._baseUrl}/${realPath}`, {
             method: method,
             body: data,
+            credentials: "same-origin",
             headers: fullHeaders,
         });
     }

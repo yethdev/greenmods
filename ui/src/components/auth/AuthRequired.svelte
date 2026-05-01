@@ -19,7 +19,9 @@
 
     <a
         class="card hover:variant-soft-primary mt-4 flex gap-2 px-5 py-3"
-        href="/api/v1/auth/github/login?redirect_uri={$page.url}"
+        href="/api/v1/auth/github/login?redirect_uri={encodeURIComponent(
+            $page.url.pathname + $page.url.search,
+        )}"
     >
         <Icon icon="tabler:brand-github" />
         {$_("author.auth_required.login")}

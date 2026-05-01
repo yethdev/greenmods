@@ -9,7 +9,7 @@ use axum::{
     },
     response::Response,
 };
-use axum_extra::extract::Host;
+use axum_extra::extract::{CookieJar, Host};
 use modhost_core::Result;
 use modhost_db::{create_token, prelude::Users, users};
 use modhost_middleware::scheme::Scheme;
@@ -18,7 +18,10 @@ use oauth2::{RedirectUrl, TokenResponse};
 use sea_orm::{ActiveValue::Set, EntityTrait, sea_query::OnConflict};
 use std::collections::HashMap;
 
-use super::CALLBACK_URL;
+use super::{
+    CALLBACK_URL,
+    login::{OAUTH_STATE_COOKIE, expire_state_cookie, safe_redirect_path},
+};
 
 /// GitHub Auth Callback
 ///
@@ -36,17 +39,33 @@ use super::CALLBACK_URL;
     ),
 )]
 pub async fn callback_handler(
+    jar: CookieJar,
     State(state): State<AppState>,
     Host(host): Host,
     Scheme(scheme): Scheme,
     url: Uri,
 ) -> Result<Response> {
-    let query = url::form_urlencoded::parse(url.query().unwrap().as_bytes())
+    let query = url::form_urlencoded::parse(url.query().unwrap_or_default().as_bytes())
         .into_owned()
         .collect::<HashMap<String, String>>();
 
-    let code = query.get("code").unwrap();
-    let to = query.get("to");
+    let Some(code) = query.get("code") else {
+        return bad_request("Missing GitHub OAuth code.");
+    };
+
+    let Some(oauth_state) = query.get("state") else {
+        return bad_request("Missing GitHub OAuth state.");
+    };
+
+    if jar
+        .get(OAUTH_STATE_COOKIE)
+        .map(|cookie| cookie.value() != oauth_state)
+        .unwrap_or(true)
+    {
+        return bad_request("Invalid GitHub OAuth state.");
+    }
+
+    let to = query.get("to").map(|to| safe_redirect_path(to));
 
     let auth_url = format!("{}://{}{}", scheme, host, CALLBACK_URL);
 
@@ -79,27 +98,24 @@ pub async fn callback_handler(
 
             let token = create_token(user.id, &state.db).await?;
 
-            let cookie_value = format!(
-                "auth-token={}; HttpOnly; Path=/; Domain={}",
-                token.value,
-                sanitize_port(&host)
-            );
+            let cookie_value = auth_cookie(&token.value, &scheme);
 
             let mut response = Response::builder()
                 .status(StatusCode::TEMPORARY_REDIRECT)
-                .body(Body::new(token.value.clone()))?;
+                .body(Body::empty())?;
 
             let cookie_header = HeaderValue::from_str(&cookie_value)?;
 
-            response.headers_mut().insert(SET_COOKIE, cookie_header);
+            response.headers_mut().append(SET_COOKIE, cookie_header);
+            response.headers_mut().append(
+                SET_COOKIE,
+                HeaderValue::from_str(&expire_state_cookie(&scheme))?,
+            );
 
             if let Some(to) = to {
-                let sym = if to.contains("?") { "&" } else { "?" };
-
-                response.headers_mut().insert(
-                    LOCATION,
-                    HeaderValue::from_str(&format!("{}{sym}token={}", to, token.value)).unwrap(),
-                );
+                response
+                    .headers_mut()
+                    .insert(LOCATION, HeaderValue::from_str(&to).unwrap());
             } else {
                 response
                     .headers_mut()
@@ -117,9 +133,14 @@ pub async fn callback_handler(
     }
 }
 
-fn sanitize_port(host: &str) -> String {
-    match host.split_once(":") {
-        Some((domain, _port)) => domain.to_string(),
-        None => host.to_string(),
-    }
+fn bad_request(message: &'static str) -> Result<Response> {
+    Ok(Response::builder()
+        .status(StatusCode::BAD_REQUEST)
+        .body(Body::new(message.to_string()))?)
+}
+
+fn auth_cookie(value: &str, scheme: &str) -> String {
+    let secure = if scheme == "https" { "; Secure" } else { "" };
+
+    format!("auth-token={value}; Max-Age=604800; HttpOnly; SameSite=Lax; Path=/{secure}")
 }
