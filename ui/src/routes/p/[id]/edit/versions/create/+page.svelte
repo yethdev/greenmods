@@ -56,6 +56,13 @@
 
     const hasFile = $derived(files.length >= 1);
     const lowerLoaders = $derived(loaders.map((v) => v.toLowerCase()));
+    const canSave = $derived(
+        versionNumber.trim() != "" &&
+            name.trim() != "" &&
+            loaders.length > 0 &&
+            gameVersions.length > 0 &&
+            hasFile,
+    );
 
     const onFileChange = (ev: Event & { target: HTMLInputElement }) => {
         files = ev.target.files ? [...ev.target.files] : [];
@@ -81,9 +88,9 @@
     });
 
     const save = async () => {
-        if (files.length < 1) {
+        if (!canSave) {
             toasts.trigger({
-                message: `You must choose a file before uploading!`,
+                message: `Choose a file, loader, and compatible Subnautica 2 version before uploading.`,
                 hideDismiss: true,
                 timeout: 5000,
                 background: "variant-filled-error",
@@ -106,7 +113,7 @@
 
         if (res instanceof ErrorResponse) {
             toasts.trigger({
-                message: `Error uploading your version: ${res}`,
+                message: `Error uploading your version: ${res.cause}`,
                 hideDismiss: true,
                 timeout: 5000,
                 background: "variant-filled-error",
@@ -205,6 +212,10 @@
             >
         {/each}
     </div>
+
+    {#if loaders.length == 0}
+        <p class="text-error-500 mt-3 text-sm">Select at least one loader.</p>
+    {/if}
 </div>
 
 <div class="card variant-glass-surface w-full p-4">
@@ -260,6 +271,12 @@
             </button>
         </div>
     </div>
+
+    {#if gameVersions.length == 0}
+        <p class="text-error-500 mt-3 text-sm">
+            Select the known Subnautica 2 version this upload supports.
+        </p>
+    {/if}
 </div>
 
 <div
@@ -325,6 +342,7 @@
         type="button"
         class="variant-filled-primary btn hover:variant-ghost-primary hover:text-token mt-2 flex flex-row items-center justify-center rounded-lg transition-all"
         onclick={save}
+        disabled={!canSave || $editSaving}
     >
         <Icon icon="tabler:upload" height="24" class="mr-2" />
         Upload

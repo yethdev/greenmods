@@ -7,6 +7,9 @@ declare module "$env/static/public" {
     export const PUBLIC_PKG_FILE_FORMATS: string;
     export const PUBLIC_GAME_BETA_NAME: string;
     export const PUBLIC_THEME_COLOR: string;
+    export const PUBLIC_SHOW_COMMIT: string;
+    export const PUBLIC_MODHOST_COMMIT: string;
+    export const PUBLIC_MODHOST_ORIGIN: string;
 }
 
 declare global {

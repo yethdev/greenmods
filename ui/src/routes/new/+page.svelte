@@ -14,6 +14,7 @@
     import Step2 from "./Step2.svelte";
     import Step3 from "./Step3.svelte";
     import Step4 from "./Step4.svelte";
+    import Step5 from "./Step5.svelte";
     import BetterStepper from "$components/ui/stepper/BetterStepper.svelte";
 
     let name = $state("");
@@ -24,6 +25,7 @@
     let issues = $state("");
     let wiki = $state("");
     let license = $state("");
+    let selectedTags = $state<string[]>([]);
     let visibility = $state<ProjectVisibility>("Public");
     let allLicenses = $state<AutocompleteOption<string, string>[]>([]);
 
@@ -53,6 +55,7 @@
             license: realLicense,
             readme,
             description,
+            tags: selectedTags,
         });
 
         if (data instanceof ErrorResponse) {
@@ -172,12 +175,18 @@
             <span class="font-bold">Visibility:</span>
             <span>{visibility}</span>
         </p>
+        <p class="flex flex-row flex-wrap items-center justify-start space-x-1">
+            <Icon icon="tabler:tags" height="24" />
+            <span class="font-bold">Tags:</span>
+            <span>{selectedTags.length == 0 ? "Unset" : selectedTags.join(", ")}</span>
+        </p>
     </div>
 
     <BetterStepper complete={save} {buttonBack} {buttonNext} {buttonComplete} class="w-full">
         <Step1 bind:name bind:slug bind:description />
         <Step2 bind:repo bind:issues bind:wiki />
         <Step3 bind:license bind:visibility bind:allLicenses />
-        <Step4 {editor} bind:readme />
+        <Step4 bind:selectedTags />
+        <Step5 {editor} bind:readme />
     </BetterStepper>
 </div>

@@ -1,5 +1,9 @@
 //! The project create route.
 
+use super::{
+    bad_request, clean_link, clean_tags, validate_project_description, validate_project_name,
+    validate_project_readme, validate_project_tags, validate_slug,
+};
 use axum::{
     Json,
     body::Body,
@@ -87,14 +91,46 @@ pub async fn create_handler(
 ) -> Result<Response> {
     let user = get_user_from_req(&jar, &headers, &state.db).await?;
 
-    if body.slug.is_empty() {
-        return Ok(Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::new("Slug must not be empty!".to_string()))?);
+    let slug = body.slug.trim().to_ascii_lowercase();
+    let name = body.name.trim().to_string();
+    let description = body.description.trim().to_string();
+    let readme = body.readme.trim().to_string();
+    let tags = clean_tags(&body.tags);
+    let source = match clean_link("Source", body.source.clone()) {
+        Ok(value) => value,
+        Err(err) => return bad_request(err),
+    };
+    let issues = match clean_link("Issue tracker", body.issues.clone()) {
+        Ok(value) => value,
+        Err(err) => return bad_request(err),
+    };
+    let wiki = match clean_link("Wiki", body.wiki.clone()) {
+        Ok(value) => value,
+        Err(err) => return bad_request(err),
+    };
+
+    if let Some(err) = validate_slug(&slug) {
+        return bad_request(err);
+    }
+
+    if let Some(err) = validate_project_name(&name) {
+        return bad_request(err);
+    }
+
+    if let Some(err) = validate_project_description(&description) {
+        return bad_request(err);
+    }
+
+    if let Some(err) = validate_project_readme(&readme) {
+        return bad_request(err);
+    }
+
+    if let Some(err) = validate_project_tags(&tags, &state) {
+        return bad_request(err);
     }
 
     if Projects::find()
-        .filter(projects::Column::Slug.eq(body.slug.clone()))
+        .filter(projects::Column::Slug.eq(slug.clone()))
         .count(&state.db)
         .await?
         > 0
@@ -107,16 +143,16 @@ pub async fn create_handler(
     }
 
     let pkg = projects::ActiveModel {
-        slug: Set(body.slug),
-        name: Set(body.name),
-        readme: Set(body.readme),
-        description: Set(body.description),
-        source: Set(body.source),
-        issues: Set(body.issues),
-        wiki: Set(body.wiki),
+        slug: Set(slug),
+        name: Set(name),
+        readme: Set(readme),
+        description: Set(description),
+        source: Set(source),
+        issues: Set(issues),
+        wiki: Set(wiki),
         visibility: Set(body.visibility),
         license: Set(body.license),
-        tags: Set(body.tags),
+        tags: Set(tags),
         ..Default::default()
     };
 

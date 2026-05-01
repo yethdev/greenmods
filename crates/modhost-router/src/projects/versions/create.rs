@@ -1,5 +1,6 @@
 //! The version create route.
 
+use super::{bad_request, split_csv, validate_file_name, validate_game_versions, validate_loaders};
 use axum::{
     body::Body,
     extract::{Multipart, Path, State},
@@ -94,26 +95,8 @@ pub async fn create_handler(
             "name" => name = Some(field.text().await?),
             "version_number" => version_number = Some(field.text().await?),
             "changelog" => changelog = Some(field.text().await?),
-            "loaders" => {
-                loaders = Some(
-                    field
-                        .text()
-                        .await?
-                        .split(",")
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>(),
-                )
-            }
-            "game_versions" => {
-                game_versions = Some(
-                    field
-                        .text()
-                        .await?
-                        .split(",")
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>(),
-                )
-            }
+            "loaders" => loaders = Some(split_csv(field.text().await?)),
+            "game_versions" => game_versions = Some(split_csv(field.text().await?)),
             "file" => file = Some(field.bytes().await?),
             "file_name" => file_name = Some(field.text().await?),
             _ => {}
@@ -149,12 +132,24 @@ pub async fn create_handler(
     let loaders = loaders.unwrap();
     let game_versions = game_versions.unwrap();
     let file = file.unwrap();
-    let file_name = file_name.unwrap();
+    let file_name = file_name.unwrap().trim().to_string();
 
     Version::parse(&version_number)?;
 
+    if let Some(err) = validate_loaders(&loaders, &state) {
+        return bad_request(err);
+    }
+
+    if let Some(err) = validate_game_versions(&game_versions, &state) {
+        return bad_request(err);
+    }
+
+    if let Some(err) = validate_file_name(&file_name, &state) {
+        return bad_request(err);
+    }
+
     if !(state.verifier)(file.clone()) {
-        Err(AppError::NotFound)?;
+        return bad_request("File did not pass GreenMods upload validation.");
     }
 
     let mut hasher = Sha1::new();

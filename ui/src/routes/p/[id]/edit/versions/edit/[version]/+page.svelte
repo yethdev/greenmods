@@ -53,6 +53,12 @@
     let gameVersions = $state<string[]>([]);
 
     const lowerLoaders = $derived(loaders.map((v) => v.toLowerCase()));
+    const canSave = $derived(
+        versionNumber.trim() != "" &&
+            name.trim() != "" &&
+            loaders.length > 0 &&
+            gameVersions.length > 0,
+    );
 
     onMount(async () => {
         if (!$currentProject || !verId) return;
@@ -82,6 +88,8 @@
     });
 
     const save = async () => {
+        if (!canSave) return;
+
         $editSaving = true;
 
         await client.project(id).versions().version(verId).update({
@@ -195,6 +203,10 @@
             >
         {/each}
     </div>
+
+    {#if loaders.length == 0}
+        <p class="text-error-500 mt-3 text-sm">Select at least one loader.</p>
+    {/if}
 </div>
 
 <div class="card variant-glass-surface w-full p-4">
@@ -250,6 +262,12 @@
             </button>
         </div>
     </div>
+
+    {#if gameVersions.length == 0}
+        <p class="text-error-500 mt-3 text-sm">
+            Select the known Subnautica 2 version this upload supports.
+        </p>
+    {/if}
 </div>
 
 <div
@@ -281,6 +299,7 @@
         type="button"
         class="variant-filled-primary btn hover:variant-ghost-primary hover:text-token mt-2 flex flex-row items-center justify-center rounded-lg transition-all"
         onclick={save}
+        disabled={!canSave || $editSaving}
     >
         <Icon icon="tabler:device-floppy" height="24" class="mr-2" />
         Save

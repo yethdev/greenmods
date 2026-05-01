@@ -1,5 +1,6 @@
 //! The version update route.
 
+use super::{bad_request, validate_game_versions, validate_loaders};
 use axum::{
     Json,
     body::Body,
@@ -84,6 +85,18 @@ pub async fn update_handler(
 
     if let Some(ver_num) = &data.version_number {
         Version::parse(ver_num)?;
+    }
+
+    if let Some(loaders) = &data.loaders {
+        if let Some(err) = validate_loaders(loaders, &state) {
+            return bad_request(err);
+        }
+    }
+
+    if let Some(vers) = &data.game_versions {
+        if let Some(err) = validate_game_versions(vers, &state) {
+            return bad_request(err);
+        }
     }
 
     let mut ver = ver.into_active_model();

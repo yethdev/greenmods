@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { userPreferencesStore } from "$lib/stores";
+    import { userPreferencesStore } from "$lib/user";
     import Icon from "@iconify/svelte";
 </script>
 

@@ -11,7 +11,7 @@ export const greenmodsTheme: CustomThemeConfig = {
         "--theme-rounded-base": "8px",
         "--theme-rounded-container": "8px",
         "--theme-border-base": "1px",
-        "--on-primary": "var(--color-surface-950)",
+        "--on-primary": "var(--color-surface-900)",
         "--on-secondary": "var(--color-surface-50)",
         "--on-tertiary": "var(--color-surface-50)",
         "--on-success": "var(--color-surface-950)",
@@ -87,7 +87,6 @@ export const greenmodsTheme: CustomThemeConfig = {
         "--color-surface-600": "48 69 59",
         "--color-surface-700": "37 54 46",
         "--color-surface-800": "26 39 33",
-        "--color-surface-900": "14 24 19",
-        "--color-surface-950": "8 15 11",
+        "--color-surface-900": "8 15 11",
     },
 };

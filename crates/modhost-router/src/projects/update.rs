@@ -1,5 +1,9 @@
 //! The project update route.
 
+use super::{
+    bad_request, clean_link, clean_tags, validate_project_description, validate_project_name,
+    validate_project_readme, validate_project_tags,
+};
 use axum::{
     Json,
     body::Body,
@@ -92,39 +96,54 @@ pub async fn update_handler(
     let mut pkg = pkg.into_active_model();
 
     if let Some(name) = data.name {
+        let name = name.trim().to_string();
+
+        if let Some(err) = validate_project_name(&name) {
+            return bad_request(err);
+        }
+
         pkg.name = Set(name);
     }
 
     if let Some(readme) = data.readme {
+        let readme = readme.trim().to_string();
+
+        if let Some(err) = validate_project_readme(&readme) {
+            return bad_request(err);
+        }
+
         pkg.readme = Set(readme);
     }
 
     if let Some(description) = data.description {
+        let description = description.trim().to_string();
+
+        if let Some(err) = validate_project_description(&description) {
+            return bad_request(err);
+        }
+
         pkg.description = Set(description);
     }
 
     if let Some(source) = data.source {
-        if source.is_empty() {
-            pkg.source = Set(None);
-        } else {
-            pkg.source = Set(Some(source));
-        }
+        pkg.source = Set(match clean_link("Source", Some(source)) {
+            Ok(value) => value,
+            Err(err) => return bad_request(err),
+        });
     }
 
     if let Some(issues) = data.issues {
-        if issues.is_empty() {
-            pkg.issues = Set(None);
-        } else {
-            pkg.issues = Set(Some(issues));
-        }
+        pkg.issues = Set(match clean_link("Issue tracker", Some(issues)) {
+            Ok(value) => value,
+            Err(err) => return bad_request(err),
+        });
     }
 
     if let Some(wiki) = data.wiki {
-        if wiki.is_empty() {
-            pkg.wiki = Set(None);
-        } else {
-            pkg.wiki = Set(Some(wiki));
-        }
+        pkg.wiki = Set(match clean_link("Wiki", Some(wiki)) {
+            Ok(value) => value,
+            Err(err) => return bad_request(err),
+        });
     }
 
     if let Some(visibility) = data.visibility {
@@ -140,6 +159,12 @@ pub async fn update_handler(
     }
 
     if let Some(tags) = data.tags {
+        let tags = clean_tags(&tags);
+
+        if let Some(err) = validate_project_tags(&tags, &state) {
+            return bad_request(err);
+        }
+
         pkg.tags = Set(tags);
     }
 
