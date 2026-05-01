@@ -1734,6 +1734,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "greenmods"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "modhost",
+ "quickhost",
+]
+
+[[package]]
 name = "h2"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

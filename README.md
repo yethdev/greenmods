@@ -21,3 +21,5 @@ cargo run -p greenmods
 ```
 
 Use `config.pkl.example` as the deployment starting point.
+
+The built-in Subnautica 2 profile currently exposes `early-access-2026.05`, `early-access`, and `preview` as compatibility targets. Creators should select the most specific target they have tested against.
