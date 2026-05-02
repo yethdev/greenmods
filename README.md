@@ -9,7 +9,6 @@ GreenMods is a Subnautica 2 mod library forked from ModHost. It keeps the fast R
 - Required compatibility metadata on uploaded versions.
 - Required creator tags, including tested status.
 - Safer authentication, upload validation, and abuse controls.
-- Deployment notes for a 10 vCore ARM64 VPS with 16 GB RAM.
 
 ## Running
 
@@ -23,5 +22,3 @@ cargo run -p greenmods
 Use `config.pkl.example` as the deployment starting point.
 
 The built-in Subnautica 2 profile currently exposes `early-access-2026.05`, `early-access`, and `preview` as compatibility targets. Creators should select the most specific target they have tested against.
-
-See [docs/vps.md](docs/vps.md) for the ARM64 VPS deployment notes.

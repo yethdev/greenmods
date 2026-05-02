@@ -7,8 +7,6 @@ macro_rules! midlog_log {
         // tracing_subscriber 0.3.20 broke this
         // see https://github.com/tokio-rs/tracing/pull/3368
 
-        // let time = colored::Colorize::bright_blue(format!("({} ms)", $time).as_str());
-
         // tracing::event!(
         //     target: "modhost::logging",
         //     tracing::Level::INFO,

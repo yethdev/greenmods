@@ -28,16 +28,21 @@ export interface SiteConfig {
     origin?: string;
 }
 
+const optionalEnv = (value: string | undefined): string | undefined => {
+    const trimmed = value?.trim() ?? "";
+    return trimmed == "" ? undefined : trimmed;
+};
+
 export const siteConfig: SiteConfig = {
-    siteName: PUBLIC_APP,
-    tagline: PUBLIC_TAGLINE,
+    siteName: PUBLIC_APP ?? "GreenMods",
+    tagline: PUBLIC_TAGLINE ?? "Subnautica 2 mods that say what they support",
     showBeta: PUBLIC_SHOW_BETA == "true",
-    type: PUBLIC_PKG_TYPE as "mods" | "packages",
-    defaultTheme: PUBLIC_DEFAULT_THEME,
-    packageFileFormats: PUBLIC_PKG_FILE_FORMATS.split(","),
-    betaName: PUBLIC_GAME_BETA_NAME as "beta" | "snapshot",
-    themeColor: PUBLIC_THEME_COLOR,
+    type: PUBLIC_PKG_TYPE == "packages" ? "packages" : "mods",
+    defaultTheme: PUBLIC_DEFAULT_THEME ?? "greenmods",
+    packageFileFormats: (PUBLIC_PKG_FILE_FORMATS ?? ".pak,.ucas,.utoc,.zip,.tar.gz").split(","),
+    betaName: PUBLIC_GAME_BETA_NAME == "snapshot" ? "snapshot" : "beta",
+    themeColor: PUBLIC_THEME_COLOR ?? "#16a34a",
     showCommit: PUBLIC_SHOW_COMMIT == "true",
-    commit: PUBLIC_MODHOST_COMMIT.trim() == "" ? undefined : PUBLIC_MODHOST_COMMIT.trim(),
-    origin: PUBLIC_MODHOST_ORIGIN.trim() == "" ? undefined : PUBLIC_MODHOST_ORIGIN.trim(),
+    commit: optionalEnv(PUBLIC_MODHOST_COMMIT),
+    origin: optionalEnv(PUBLIC_MODHOST_ORIGIN),
 };

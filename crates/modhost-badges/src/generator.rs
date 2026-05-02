@@ -7,8 +7,8 @@ use crate::{
 use modhost_core::{AppError, Result};
 use rsbadges::{Badge, Style};
 
-/// The default blue color for the badge message.
-pub const DEFAULT_BLUE: &str = "#007ec6";
+/// The default GreenMods color for the badge message.
+pub const DEFAULT_GREEN: &str = "#16a34a";
 
 /// The default gray color for the badge label.
 pub const DEFAULT_GRAY: &str = "#555555";
@@ -33,7 +33,7 @@ pub async fn generate_badge(opts: BadgeOptions) -> Result<String> {
         label_link: opts.label_link.unwrap_or_default(),
         label_title: opts.label_title.unwrap_or_default(),
         msg_text: opts.msg_text,
-        msg_color: opts.msg_color.unwrap_or(DEFAULT_BLUE.into()),
+        msg_color: opts.msg_color.unwrap_or(DEFAULT_GREEN.into()),
         msg_link: opts.msg_link.unwrap_or_default(),
         msg_title: opts.msg_title.unwrap_or_default(),
     };
