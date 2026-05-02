@@ -1,6 +1,7 @@
 <script lang="ts">
     import EditContainer from "$components/ui/edit/EditContainer.svelte";
-    import { onMount, type Snippet } from "svelte";
+    import { onMount } from "svelte";
+    import type { Snippet } from "svelte";
     import { page } from "$app/stores";
     import { currentProject, editLoadingState } from "$lib/state";
     import { beforeNavigate, goto } from "$app/navigation";

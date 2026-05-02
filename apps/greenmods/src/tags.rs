@@ -2,8 +2,6 @@ use modhost::{Tag, tags};
 
 pub fn tags() -> Vec<Tag> {
     tags![
-        "tested", "Tested", "tabler:shield-check";
-        "needs-testing", "Needs testing", "tabler:flask";
         "co-op-ready", "Co-op ready", "tabler:users";
         "single-player", "Single-player", "tabler:user";
         "client-side", "Client-side", "tabler:device-desktop";

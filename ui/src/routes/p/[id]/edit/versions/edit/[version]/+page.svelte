@@ -4,18 +4,15 @@
     import { onDestroy, onMount } from "svelte";
     import { currentProject, editSaving } from "$lib/state";
     import Icon from "@iconify/svelte";
-    import {
-        Autocomplete,
-        getModalStore,
-        InputChip,
-        popup,
-        type PopupSettings,
-    } from "@skeletonlabs/skeleton";
+    import { Autocomplete, getModalStore, InputChip, popup } from "@skeletonlabs/skeleton";
     import { siteConfig } from "$lib/config";
     import { gameVersions as allGameVersions, loaders as allLoaders } from "$lib/meta";
-    import { elementPopup, type PopupControls } from "$lib/ui/popups";
+    import { elementPopup } from "$lib/ui/popups";
     import { Carta, MarkdownEditor } from "carta-md";
-    import { unwrap, unwrapOrNull, type ProjectVersion } from "@modhost/api";
+    import { unwrap, unwrapOrNull } from "@modhost/api";
+    import type { PopupSettings } from "@skeletonlabs/skeleton";
+    import type { PopupControls } from "$lib/ui/popups";
+    import type { ProjectVersion } from "@modhost/api";
     import { client } from "$lib/api";
 
     const id = $derived(page.params.id);

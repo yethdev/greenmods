@@ -22,7 +22,6 @@ use std::collections::HashSet;
 use url::Url;
 
 const MAX_TAGS: usize = 12;
-const REQUIRED_TEST_TAG: &str = "tested";
 
 /// Register project-related routes onto the router.
 /// This should be nested at `/api/v1/projects`.
@@ -124,10 +123,6 @@ fn validate_project_tags(tags: &[String], state: &AppState) -> Option<String> {
 
     if tags.len() > MAX_TAGS {
         return Some(format!("Choose at most {MAX_TAGS} tags."));
-    }
-
-    if !tags.iter().any(|tag| tag == REQUIRED_TEST_TAG) {
-        return Some("The tested tag is required.".into());
     }
 
     let mut seen = HashSet::new();

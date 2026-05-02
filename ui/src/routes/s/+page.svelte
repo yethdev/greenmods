@@ -3,8 +3,10 @@
     import { afterNavigate, goto, replaceState } from "$app/navigation";
     import { base } from "$app/paths";
     import {
+        apiAvailable,
         currentQuery,
         emptySearchResults,
+        searchProjects,
         searchResults,
         updateSearchResults,
     } from "$lib/state";
@@ -13,16 +15,17 @@
     import { onMount } from "svelte";
     import { page } from "$app/stores";
     import { dedupe, guessSortMode } from "$lib/util";
-    import { contextMenu, type ContextMenuItem } from "$lib/ui";
+    import { contextMenu } from "$lib/ui";
+    import type { ContextMenuItem } from "$lib/ui";
     import PackageList from "$components/ui/PackageList.svelte";
     import TablerIconCheck from "$components/icons/TablerIconCheck.svelte";
+    import { apiBase } from "$lib/api";
     import { siteConfig } from "$lib/config";
     import Icon from "@iconify/svelte";
     import { gameVersions, loaders, tags } from "$lib/meta";
     import type { LoadingState } from "$lib/types";
     import { userPreferencesStore } from "$lib/user";
-    import { unwrapOrNull, type Facet, type SortMode, type SortDirection } from "@modhost/api";
-    import { client } from "$lib/api";
+    import type { Facet, SortMode, SortDirection } from "@modhost/api";
 
     let currentPage = $state(1);
     let perPage = $state(30);
@@ -33,6 +36,7 @@
     let versionSearch = $state("");
     let tagsSearch = $state("");
     let showBetas = $state(false);
+    let querySyncReady = $state(false);
 
     const searchedVersions = $derived(
         ($gameVersions || []).filter((v) =>
@@ -54,55 +58,66 @@
 
     const showDetails = $derived(($page.url.searchParams.get("showDetails") ?? "false") == "true");
 
-    onMount(async () => {
-        const dir = $page.url.searchParams.get("dir");
-        const curPage = $page.url.searchParams.get("page");
-        const queryLoaderFilters = $page.url.searchParams.get("loaders");
-        const queryVersionFilters = $page.url.searchParams.get("versions");
-        const queryTagFilters = $page.url.searchParams.get("tags");
+    onMount(() => {
+        const loadPage = async () => {
+            const dir = $page.url.searchParams.get("dir");
+            const curPage = $page.url.searchParams.get("page");
+            const queryLoaderFilters = $page.url.searchParams.get("loaders");
+            const queryVersionFilters = $page.url.searchParams.get("versions");
+            const queryTagFilters = $page.url.searchParams.get("tags");
 
-        loadingState = (await updateSearchResults()) ? "ready" : "failed";
-        $userPreferencesStore.sortBy = guessSortMode($page.url.searchParams.get("sort") ?? "");
+            await updateSearchResults();
+            loadingState = $apiAvailable ? "ready" : "failed";
+            $userPreferencesStore.sortBy = guessSortMode($page.url.searchParams.get("sort") ?? "");
 
-        $userPreferencesStore.sortDir = dir
-            ? dir == "asc"
-                ? "asc"
-                : dir == "desc"
-                  ? "desc"
-                  : $userPreferencesStore.sortDir
-            : $userPreferencesStore.sortDir;
+            $userPreferencesStore.sortDir = dir
+                ? dir == "asc"
+                    ? "asc"
+                    : dir == "desc"
+                      ? "desc"
+                      : $userPreferencesStore.sortDir
+                : $userPreferencesStore.sortDir;
 
-        if (
-            $currentQuery == "" &&
-            $page.url.searchParams.has("q") &&
-            $page.url.searchParams.get("q") != ""
-        ) {
-            $currentQuery = $page.url.searchParams.get("q")!;
-        }
+            if (
+                $currentQuery == "" &&
+                $page.url.searchParams.has("q") &&
+                $page.url.searchParams.get("q") != ""
+            ) {
+                $currentQuery = $page.url.searchParams.get("q")!;
+            }
 
-        try {
-            const val = curPage ? parseInt(curPage) : currentPage;
+            try {
+                const val = curPage ? parseInt(curPage) : currentPage;
 
-            currentPage = val;
-        } catch (_) {}
+                currentPage = val;
+            } catch (_) {}
 
-        try {
-            const val = queryLoaderFilters ? JSON.parse(queryLoaderFilters) : loaderFilters;
+            try {
+                const val = queryLoaderFilters ? JSON.parse(queryLoaderFilters) : loaderFilters;
 
-            loaderFilters = val;
-        } catch (_) {}
+                loaderFilters = val;
+            } catch (_) {}
 
-        try {
-            const val = queryVersionFilters ? JSON.parse(queryVersionFilters) : versionFilters;
+            try {
+                const val = queryVersionFilters ? JSON.parse(queryVersionFilters) : versionFilters;
 
-            versionFilters = val;
-        } catch (_) {}
+                versionFilters = val;
+            } catch (_) {}
 
-        try {
-            const val = queryTagFilters ? JSON.parse(queryTagFilters) : tagFilters;
+            try {
+                const val = queryTagFilters ? JSON.parse(queryTagFilters) : tagFilters;
 
-            tagFilters = val;
-        } catch (_) {}
+                tagFilters = val;
+            } catch (_) {}
+
+            querySyncReady = true;
+        };
+
+        void loadPage();
+
+        return () => {
+            querySyncReady = false;
+        };
     });
 
     $effect(() => {
@@ -120,8 +135,7 @@
             facets.push(["tags", tagFilters]);
         }
 
-        client
-            .search(
+        searchProjects(
                 $currentQuery,
                 currentPage,
                 perPage,
@@ -129,32 +143,39 @@
                 $userPreferencesStore.sortDir,
                 facets,
             )
-            .then((v) => ($searchResults = unwrapOrNull(v) ?? emptySearchResults));
+            .then((v) => {
+                $searchResults = v ?? emptySearchResults;
+                loadingState = $apiAvailable ? "ready" : "failed";
+            });
     });
 
     const updateQuery = async () => {
-        if ($currentQuery != "") $page.url.searchParams.set("q", $currentQuery);
-        else $page.url.searchParams.delete("q");
+        if (!querySyncReady) return;
+
+        const nextUrl = new URL($page.url);
+
+        if ($currentQuery != "") nextUrl.searchParams.set("q", $currentQuery);
+        else nextUrl.searchParams.delete("q");
 
         if ($userPreferencesStore.sortBy != "none")
-            $page.url.searchParams.set("sort", $userPreferencesStore.sortBy);
-        else $page.url.searchParams.delete("sort");
+            nextUrl.searchParams.set("sort", $userPreferencesStore.sortBy);
+        else nextUrl.searchParams.delete("sort");
 
-        $page.url.searchParams.set("dir", $userPreferencesStore.sortDir);
-        $page.url.searchParams.set("page", currentPage.toString());
+        nextUrl.searchParams.set("dir", $userPreferencesStore.sortDir);
+        nextUrl.searchParams.set("page", currentPage.toString());
 
         if (loaderFilters.length > 0)
-            $page.url.searchParams.set("loaders", JSON.stringify(loaderFilters));
-        else $page.url.searchParams.delete("loaders");
+            nextUrl.searchParams.set("loaders", JSON.stringify(loaderFilters));
+        else nextUrl.searchParams.delete("loaders");
 
         if (versionFilters.length > 0)
-            $page.url.searchParams.set("versions", JSON.stringify(versionFilters));
-        else $page.url.searchParams.delete("versions");
+            nextUrl.searchParams.set("versions", JSON.stringify(versionFilters));
+        else nextUrl.searchParams.delete("versions");
 
-        if (tagFilters.length > 0) $page.url.searchParams.set("tags", JSON.stringify(tagFilters));
-        else $page.url.searchParams.delete("tags");
+        if (tagFilters.length > 0) nextUrl.searchParams.set("tags", JSON.stringify(tagFilters));
+        else nextUrl.searchParams.delete("tags");
 
-        replaceState($page.url, $page.state);
+        replaceState(nextUrl, $page.state);
     };
 
     const prevPage = () => {
@@ -537,7 +558,12 @@
                 />
             </dl>
         {:else if loadingState == "failed"}
-            <p class="w-full p-2 text-center">No projects found!</p>
+            <div class="card w-full p-4 text-center">
+                <p class="font-semibold">Local API unavailable</p>
+                <p class="mt-2 opacity-70">
+                    The UI is running, but it could not reach the mod API at {apiBase}.
+                </p>
+            </div>
         {/if}
     </div>
 </div>

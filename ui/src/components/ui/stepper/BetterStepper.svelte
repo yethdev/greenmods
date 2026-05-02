@@ -2,11 +2,8 @@
 
 <script lang="ts" module>
     import { fade } from "svelte/transition";
-    import {
-        type Transition,
-        type TransitionParams,
-        prefersReducedMotionStore,
-    } from "@skeletonlabs/skeleton";
+    import { prefersReducedMotionStore } from "@skeletonlabs/skeleton";
+    import type { Transition, TransitionParams } from "@skeletonlabs/skeleton";
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     type FadeTransition = typeof fade;
@@ -18,8 +15,10 @@
     lang="ts"
     generics="TransitionIn extends Transition = FadeTransition, TransitionOut extends Transition = FadeTransition"
 >
-    import { setContext, type Snippet } from "svelte";
-    import { type Writable, writable } from "svelte/store";
+    import { setContext } from "svelte";
+    import { writable } from "svelte/store";
+    import type { Snippet } from "svelte";
+    import type { Writable } from "svelte/store";
     import { dynamicTransition } from "$lib/skeleton/transitions";
 
     // Types

@@ -4,7 +4,8 @@
     import { onMount } from "svelte";
     import { currentProject, editSaving } from "$lib/state";
     import Icon from "@iconify/svelte";
-    import { FileDropzone, getToastStore, popup, type PopupSettings } from "@skeletonlabs/skeleton";
+    import { FileDropzone, getToastStore, popup } from "@skeletonlabs/skeleton";
+    import type { PopupSettings } from "@skeletonlabs/skeleton";
     import { Carta, MarkdownEditor } from "carta-md";
     import { goto } from "$app/navigation";
     import { formatBytes } from "$lib/util";

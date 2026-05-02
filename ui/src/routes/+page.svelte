@@ -1,47 +1,8 @@
 <script lang="ts">
-    import { _, locale } from "svelte-i18n";
-    import { onMount } from "svelte";
+    import { _ } from "svelte-i18n";
     import ProjectScroller from "$components/ui/ProjectScroller.svelte";
     import { siteConfig } from "$lib/config";
     import Icon from "@iconify/svelte";
-
-    const addCharDelay = 100;
-
-    let tagline = siteConfig.tagline;
-    let adding = $state(true);
-    let text = $state("");
-
-    const canAddChar = () => text.length < tagline.length;
-
-    const addChar = () => {
-        const index = text.length;
-
-        if (canAddChar()) {
-            text += tagline[index];
-        }
-    };
-
-    const scheduleAddChar = () => {
-        addChar();
-
-        if (canAddChar()) {
-            setTimeout(scheduleAddChar, addCharDelay);
-        } else {
-            setTimeout(() => {
-                adding = false;
-            }, addCharDelay);
-        }
-    };
-
-    onMount(() => {
-        document.addEventListener("ready", scheduleAddChar);
-    });
-
-    locale.subscribe(() => {
-        tagline = siteConfig.tagline;
-        text = "";
-        scheduleAddChar();
-    });
 </script>
 
 <svelte:head>
@@ -59,9 +20,7 @@
         {/if}
     </h2>
 
-    <span class="animate-border-blink mt-2 border-r-2 pr-1 text-xl font-bold">
-        {text}
-    </span>
+    <span class="mt-2 text-xl font-bold">{siteConfig.tagline}</span>
 
     <div class="mt-16 flex flex-col items-center justify-center space-y-4 md:flex-row md:space-y-0">
         <a href="/s" class="variant-filled-primary btn">

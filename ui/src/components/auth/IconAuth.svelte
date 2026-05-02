@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { popup, type PopupSettings } from "@skeletonlabs/skeleton";
+    import { popup } from "@skeletonlabs/skeleton";
+    import type { PopupSettings } from "@skeletonlabs/skeleton";
     import Icon from "@iconify/svelte";
     import { user } from "$lib/user";
     import { popupsDidMount } from "$lib/state";

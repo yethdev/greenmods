@@ -12,7 +12,7 @@
     const toasts = getToastStore();
 
     let selectedTags = $state<string[]>([]);
-    const hasTested = $derived(selectedTags.includes("tested"));
+    const locked = $derived(selectedTags.length < 1);
 
     onMount(() => {
         selectedTags = $currentProject?.tags ?? [];
@@ -27,9 +27,9 @@
     };
 
     const save = async () => {
-        if (!hasTested) {
+        if (locked) {
             toasts.trigger({
-                message: "The Tested tag is required.",
+                message: "Choose at least one tag.",
                 hideDismiss: true,
                 timeout: 5000,
                 background: "variant-filled-error",
@@ -68,12 +68,12 @@
 
 <div class="card variant-soft-primary w-full p-4">
     <p class="text-primary-500 mb-2 flex flex-row items-center justify-start">
-        <Icon icon="tabler:shield-check" height="24" class="mr-2" />
-        Compatibility status
+        <Icon icon="tabler:tags" height="24" class="mr-2" />
+        Tags
     </p>
 
-    {#if !hasTested}
-        <p class="text-error-500 mb-3 text-sm">The Tested tag is required before saving.</p>
+    {#if locked}
+        <p class="text-error-500 mb-3 text-sm">Choose at least one tag before saving.</p>
     {/if}
 
     <div class="flex flex-wrap gap-2">
@@ -96,7 +96,7 @@
     type="button"
     class="variant-filled-primary btn hover:variant-ghost-primary hover:text-token mt-2 flex flex-row items-center justify-center rounded-lg transition-all"
     onclick={save}
-    disabled={!hasTested || $editSaving}
+    disabled={locked || $editSaving}
 >
     <Icon icon="tabler:device-floppy" height="24" class="mr-2" />
     Save

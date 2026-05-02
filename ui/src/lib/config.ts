@@ -1,18 +1,4 @@
-/// <reference path="../app.d.ts" />
-
-import {
-    PUBLIC_APP,
-    PUBLIC_DEFAULT_THEME,
-    PUBLIC_GAME_BETA_NAME,
-    PUBLIC_PKG_FILE_FORMATS,
-    PUBLIC_PKG_TYPE,
-    PUBLIC_SHOW_BETA,
-    PUBLIC_TAGLINE,
-    PUBLIC_THEME_COLOR,
-    PUBLIC_SHOW_COMMIT,
-    PUBLIC_MODHOST_COMMIT,
-    PUBLIC_MODHOST_ORIGIN,
-} from "$env/static/public";
+import { env } from "$env/dynamic/public";
 
 export interface SiteConfig {
     siteName: string;
@@ -34,15 +20,15 @@ const optionalEnv = (value: string | undefined): string | undefined => {
 };
 
 export const siteConfig: SiteConfig = {
-    siteName: PUBLIC_APP ?? "GreenMods",
-    tagline: PUBLIC_TAGLINE ?? "Subnautica 2 mods that say what they support",
-    showBeta: PUBLIC_SHOW_BETA == "true",
-    type: PUBLIC_PKG_TYPE == "packages" ? "packages" : "mods",
-    defaultTheme: PUBLIC_DEFAULT_THEME ?? "greenmods",
-    packageFileFormats: (PUBLIC_PKG_FILE_FORMATS ?? ".pak,.ucas,.utoc,.zip,.tar.gz").split(","),
-    betaName: PUBLIC_GAME_BETA_NAME == "snapshot" ? "snapshot" : "beta",
-    themeColor: PUBLIC_THEME_COLOR ?? "#16a34a",
-    showCommit: PUBLIC_SHOW_COMMIT == "true",
-    commit: optionalEnv(PUBLIC_MODHOST_COMMIT),
-    origin: optionalEnv(PUBLIC_MODHOST_ORIGIN),
+    siteName: (env.PUBLIC_APP ?? "greenmods").toLowerCase(),
+    tagline: env.PUBLIC_TAGLINE ?? "Subnautica 2 mods that say what they support",
+    showBeta: env.PUBLIC_SHOW_BETA == "true",
+    type: env.PUBLIC_PKG_TYPE == "packages" ? "packages" : "mods",
+    defaultTheme: env.PUBLIC_DEFAULT_THEME ?? "greenmods",
+    packageFileFormats: (env.PUBLIC_PKG_FILE_FORMATS ?? ".pak,.ucas,.utoc,.zip,.tar.gz").split(","),
+    betaName: env.PUBLIC_GAME_BETA_NAME == "snapshot" ? "snapshot" : "beta",
+    themeColor: env.PUBLIC_THEME_COLOR ?? "#16a34a",
+    showCommit: env.PUBLIC_SHOW_COMMIT == "true",
+    commit: optionalEnv(env.PUBLIC_MODHOST_COMMIT),
+    origin: optionalEnv(env.PUBLIC_MODHOST_ORIGIN),
 };

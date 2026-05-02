@@ -4,7 +4,8 @@
     import { page } from "$app/state";
     import { formatDate } from "$lib/util";
     import { onMount } from "svelte";
-    import { unwrapOrNull, type FullProject } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { FullProject } from "@modhost/api";
     import { client } from "$lib/api";
 
     interface Props {

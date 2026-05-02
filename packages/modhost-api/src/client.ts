@@ -287,6 +287,28 @@ export class Client {
         return `${this._baseUrl}/projects/${project}/versions/${version}/download/${file}`;
     }
 
+    public async downloadProjectVersionModOnly(
+        project: string | number,
+        version: string | number,
+        file: string | number,
+    ) {
+        return await (
+            await this._fetch(
+                false,
+                "GET",
+                `/projects/${project}/versions/${version}/download/${file}/mod-only`,
+            )
+        ).arrayBuffer();
+    }
+
+    public downloadProjectVersionModOnlyUrl(
+        project: string | number,
+        version: string | number,
+        file: string | number,
+    ) {
+        return `${this._baseUrl}/projects/${project}/versions/${version}/download/${file}/mod-only`;
+    }
+
     public async uploadProjectVersion(project: string | number, data: ProjectVersionInit) {
         const form = new FormData();
 

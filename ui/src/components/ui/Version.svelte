@@ -2,7 +2,8 @@
     import { _ } from "svelte-i18n";
     import { downloadFile, formatDate } from "$lib/util";
     import Icon from "@iconify/svelte";
-    import { unwrapOrNull, type ProjectVersion } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { ProjectVersion } from "@modhost/api";
     import { client } from "$lib/api";
 
     interface Props {

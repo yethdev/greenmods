@@ -2,7 +2,8 @@
     import { client } from "$/lib/api";
     import { showGenericDeleteModal } from "$components/modals/modals";
     import Icon from "@iconify/svelte";
-    import { ErrorResponse, type User } from "@modhost/api";
+    import { ErrorResponse } from "@modhost/api";
+    import type { User } from "@modhost/api";
     import { getModalStore, getToastStore } from "@skeletonlabs/skeleton";
     import { onMount } from "svelte";
 

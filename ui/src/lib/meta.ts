@@ -1,4 +1,4 @@
-import { unwrap, type GameVersion, type ModLoader, type Tag } from "@modhost/api";
+import { unwrapOrNull, type GameVersion, type ModLoader, type Tag } from "@modhost/api";
 import { writable } from "svelte/store";
 import { client } from "./api";
 
@@ -8,15 +8,22 @@ export const gameVersions = writable<GameVersion[]>([]);
 export const licenses = writable<string[]>([]);
 export const licensesUrl = "https://licenses.opendefinition.org/licenses/groups/all.json";
 
-export const updateTags = async () => tags.set(unwrap(await client.meta().tags()));
-export const updateLoaders = async () => loaders.set(unwrap(await client.meta().loaders()));
+export const updateTags = async () =>
+    tags.set(unwrapOrNull(await client.meta().tags()) ?? []);
+export const updateLoaders = async () =>
+    loaders.set(unwrapOrNull(await client.meta().loaders()) ?? []);
 
 export const updateGameVersions = async () =>
-    gameVersions.set(unwrap(await client.meta().gameVersions()));
+    gameVersions.set(unwrapOrNull(await client.meta().gameVersions()) ?? []);
 
 export const updateLicenses = async () =>
-    licenses.set(Object.keys(await (await fetch(licensesUrl)).json()));
+    licenses.set(Object.keys(await (await fetch(licensesUrl)).json()).sort());
 
 export const initMeta = async () => {
-    await Promise.all([updateTags(), updateLoaders(), updateGameVersions(), updateLicenses()]);
+    await Promise.all([
+        updateTags(),
+        updateLoaders(),
+        updateGameVersions(),
+        updateLicenses().catch(() => licenses.set([])),
+    ]);
 };

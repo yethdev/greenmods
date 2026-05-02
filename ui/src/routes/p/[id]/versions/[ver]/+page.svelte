@@ -8,7 +8,8 @@
     import Icon from "@iconify/svelte";
     import { getToastStore } from "@skeletonlabs/skeleton";
     import { tryAggregateVersions } from "$lib/vers";
-    import { unwrapOrNull, type ProjectVersion } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { ProjectVersion } from "@modhost/api";
     import { user } from "$lib/user";
     import { client } from "$lib/api";
     import VersionFile from "$components/ui/VersionFile.svelte";

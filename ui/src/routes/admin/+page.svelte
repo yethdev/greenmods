@@ -4,7 +4,8 @@
     import { siteConfig } from "$lib/config";
     import { formatBytes } from "$lib/util";
     import Icon from "@iconify/svelte";
-    import { AdminStatsSocketWrapper, ErrorResponse, unwrap, type AdminStats } from "@modhost/api";
+    import { AdminStatsSocketWrapper, ErrorResponse, unwrap } from "@modhost/api";
+    import type { AdminStats } from "@modhost/api";
     import { getToastStore } from "@skeletonlabs/skeleton";
     import { Duration } from "luxon";
     import { onMount } from "svelte";

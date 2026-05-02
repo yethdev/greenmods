@@ -14,19 +14,14 @@
     import { onMount } from "svelte";
     import { getToastStore } from "@skeletonlabs/skeleton";
     import { base } from "$app/paths";
-    import { currentProject } from "$lib/state";
+    import { currentProject, getProjectForDisplay, getProjectVersionsForDisplay } from "$lib/state";
     import { tryAggregateVersions } from "$lib/vers";
     import { siteConfig } from "$lib/config";
     import Icon from "@iconify/svelte";
     import { pkgRoutes } from "$lib/routes";
     import ProjectTabs from "$components/ui/ProjectTabs.svelte";
-    import {
-        unwrapOrNull,
-        type GalleryImage,
-        type ProjectVersion,
-        type ProjectVisibility,
-        type Tag,
-    } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { GalleryImage, ProjectVersion, ProjectVisibility, Tag } from "@modhost/api";
     import { user } from "$lib/user";
     import { tags as allTags } from "$lib/meta";
     import { client } from "$lib/api";
@@ -70,8 +65,8 @@
     };
 
     onMount(async () => {
-        $currentProject = unwrapOrNull(await client.project(id).get());
-        versions = unwrapOrNull(await client.project(id).versions().list()) ?? [];
+        $currentProject = await getProjectForDisplay(id);
+        versions = await getProjectVersionsForDisplay(id);
 
         if ($currentProject) {
             name = $currentProject.name;
@@ -111,8 +106,8 @@
     });
 
     const reset = async () => {
-        $currentProject = unwrapOrNull(await client.project(id).get());
-        versions = unwrapOrNull(await client.project(id).versions().list()) ?? [];
+        $currentProject = await getProjectForDisplay(id);
+        versions = await getProjectVersionsForDisplay(id);
 
         if ($currentProject) {
             name = $currentProject.name;

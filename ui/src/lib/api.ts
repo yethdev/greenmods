@@ -1,9 +1,16 @@
+import { env } from "$env/dynamic/public";
 import { goto } from "$app/navigation";
 import { persisted } from "svelte-persisted-store";
 import { get } from "svelte/store";
 import { ModHostClient } from "@modhost/api";
 
-export const client = new ModHostClient();
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+export const apiBase = trimTrailingSlash(env.PUBLIC_API_BASE?.trim() || "/api/v1");
+
+const apiPath = (path: string) => `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
+
+export const client = new ModHostClient(apiBase);
 
 const tokenStore = persisted<string | undefined>("auth-token", undefined);
 
@@ -23,6 +30,6 @@ export const checkClientToken = () => {
 export const beginLogin = (redirect: string) =>
     goto(
         redirect
-            ? `/api/v1/auth/github/login?redirect_uri=${encodeURIComponent(redirect)}`
-            : "/api/v1/auth/github/login",
+            ? apiPath(`/auth/github/login?redirect_uri=${encodeURIComponent(redirect)}`)
+            : apiPath("/auth/github/login"),
     );

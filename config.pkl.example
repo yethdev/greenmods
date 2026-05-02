@@ -47,7 +47,7 @@ app: ModHost.AppConfig = new {
     }
 
     ui {
-        app = "GreenMods"
+        app = "greenmods"
         tagline = "Subnautica 2 mods that say what they support"
         show_beta = true
         show_commit = true

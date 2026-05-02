@@ -1,6 +1,6 @@
-# GreenMods
+# greenmods
 
-GreenMods is a Subnautica 2 mod library forked from ModHost. It keeps the fast Rust API, Svelte UI, Meilisearch-backed discovery, moderation queue, gallery support, API client, and self-hosted deployment model, then tightens the product around Subnautica 2.
+greenmods is a Subnautica 2 mod library forked from ModHost. It keeps the fast Rust API, Svelte UI, Meilisearch-backed discovery, moderation queue, gallery support, API client, and self-hosted deployment model, then tightens the product around Subnautica 2.
 
 ## Focus
 
@@ -12,7 +12,7 @@ GreenMods is a Subnautica 2 mod library forked from ModHost. It keeps the fast R
 
 ## Running
 
-Compile the config, start the backing services, then run the GreenMods app:
+Compile the config, start the backing services, then run the greenmods app:
 
 ```sh
 ./compile_config.sh

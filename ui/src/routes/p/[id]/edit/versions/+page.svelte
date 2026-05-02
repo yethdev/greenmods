@@ -6,7 +6,8 @@
     import Icon from "@iconify/svelte";
     import EditVersion from "$components/ui/edit/EditVersion.svelte";
     import { getModalStore } from "@skeletonlabs/skeleton";
-    import { unwrapOrNull, type ProjectVersion } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { ProjectVersion } from "@modhost/api";
     import { client } from "$lib/api";
 
     const id = $derived($page.params.id);

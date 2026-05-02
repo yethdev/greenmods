@@ -4,7 +4,8 @@
     import { onMount } from "svelte";
     import { currentProject } from "$lib/state";
     import { client } from "$lib/api";
-    import { unwrapOrNull, type GalleryImage as GalleryImageInfo } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { GalleryImage as GalleryImageInfo } from "@modhost/api";
     import GalleryImage from "$components/ui/GalleryImage.svelte";
 
     const id = $derived($page.params.id);

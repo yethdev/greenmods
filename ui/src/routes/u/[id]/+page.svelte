@@ -7,14 +7,16 @@
     import { getToastStore } from "@skeletonlabs/skeleton";
     import PackageList from "$components/ui/PackageList.svelte";
     import { guessSortMode } from "$lib/util";
-    import { contextMenu, type ContextMenuItem } from "$lib/ui";
+    import { contextMenu } from "$lib/ui";
+    import type { ContextMenuItem } from "$lib/ui";
     import TablerIconCheck from "$components/icons/TablerIconCheck.svelte";
     import IconBlank from "$components/icons/IconBlank.svelte";
     import { afterNavigate, beforeNavigate, goto } from "$app/navigation";
     import { siteConfig } from "$lib/config";
     import Icon from "@iconify/svelte";
     import { client } from "$lib/api";
-    import { unwrapOrNull, type FullProject, type SortMode, type User } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { FullProject, SortMode, User } from "@modhost/api";
 
     const id = $derived($page.params.id);
     const toasts = getToastStore();

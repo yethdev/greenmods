@@ -4,7 +4,8 @@
     import { goto } from "$app/navigation";
     import { showGenericDeleteModal } from "$components/modals/modals";
     import Icon from "@iconify/svelte";
-    import { ErrorResponse, type FullProject } from "@modhost/api";
+    import { ErrorResponse } from "@modhost/api";
+    import type { FullProject } from "@modhost/api";
     import { getModalStore, getToastStore } from "@skeletonlabs/skeleton";
     import { onMount } from "svelte";
 

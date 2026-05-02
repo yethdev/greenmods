@@ -10,11 +10,12 @@
         storePopup,
         initializeStores,
         ProgressRadial,
-        type ModalComponent,
     } from "@skeletonlabs/skeleton";
+    import type { ModalComponent } from "@skeletonlabs/skeleton";
     import { computePosition, autoUpdate, offset, shift, flip, arrow } from "@floating-ui/dom";
     import { afterNavigate, beforeNavigate, onNavigate } from "$app/navigation";
-    import { onMount, type Snippet } from "svelte";
+    import { onMount } from "svelte";
+    import type { Snippet } from "svelte";
     import { fly } from "svelte/transition";
     import HeaderBar from "$components/ui/HeaderBar.svelte";
     import ContextMenu from "$components/ui/ContextMenu.svelte";

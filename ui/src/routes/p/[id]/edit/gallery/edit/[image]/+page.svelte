@@ -4,9 +4,11 @@
     import { onMount } from "svelte";
     import { currentProject, editSaving } from "$lib/state";
     import Icon from "@iconify/svelte";
-    import { getModalStore, popup, type PopupSettings } from "@skeletonlabs/skeleton";
+    import { getModalStore, popup } from "@skeletonlabs/skeleton";
     import { Carta, MarkdownEditor } from "carta-md";
-    import { unwrap, unwrapOrNull, type GalleryImage } from "@modhost/api";
+    import { unwrap, unwrapOrNull } from "@modhost/api";
+    import type { PopupSettings } from "@skeletonlabs/skeleton";
+    import type { GalleryImage } from "@modhost/api";
     import { client } from "$lib/api";
 
     const id = $derived($page.params.id);

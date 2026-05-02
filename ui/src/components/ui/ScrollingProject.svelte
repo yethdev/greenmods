@@ -1,7 +1,8 @@
 <script lang="ts">
     import { client } from "$lib/api";
     import { capText } from "$lib/util";
-    import { unwrapOrNull, type FullProject } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { FullProject } from "@modhost/api";
     import { onMount } from "svelte";
 
     interface Props {

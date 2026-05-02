@@ -149,7 +149,7 @@ pub async fn create_handler(
     }
 
     if !(state.verifier)(file.clone()) {
-        return bad_request("File did not pass GreenMods upload validation.");
+        return bad_request("File did not pass greenmods upload validation.");
     }
 
     let mut hasher = Sha1::new();

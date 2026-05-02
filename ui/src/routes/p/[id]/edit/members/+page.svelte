@@ -5,7 +5,8 @@
     import { currentProject, editSaving } from "$lib/state";
     import Icon from "@iconify/svelte";
     import { getToastStore } from "@skeletonlabs/skeleton";
-    import { unwrap, unwrapOrNull, type User } from "@modhost/api";
+    import { unwrap, unwrapOrNull } from "@modhost/api";
+    import type { User } from "@modhost/api";
     import { client } from "$lib/api";
 
     const id = $derived($page.params.id);

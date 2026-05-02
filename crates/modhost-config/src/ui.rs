@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UIConfig {
     /// The app name/title.
-    /// Defaults to `"GreenMods"`
+    /// Defaults to `"greenmods"`
     pub app: String,
 
     /// The app tagline.
@@ -147,7 +147,7 @@ impl UIConfig {
 impl Default for UIConfig {
     fn default() -> Self {
         Self {
-            app: "GreenMods".into(),
+            app: "greenmods".into(),
             tagline: "Subnautica 2 mods that say what they support".into(),
             show_beta: true,
             project_kind: ProjectKind::Mods,

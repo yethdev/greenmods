@@ -4,14 +4,10 @@
     import { onMount } from "svelte";
     import { currentProject, editSaving } from "$lib/state";
     import Icon from "@iconify/svelte";
-    import {
-        Autocomplete,
-        getModalStore,
-        popup,
-        type AutocompleteOption,
-        type PopupSettings,
-    } from "@skeletonlabs/skeleton";
-    import { unwrapOrNull, type ProjectVisibility } from "@modhost/api";
+    import { Autocomplete, getModalStore, popup } from "@skeletonlabs/skeleton";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { AutocompleteOption, PopupSettings } from "@skeletonlabs/skeleton";
+    import type { ProjectVisibility } from "@modhost/api";
     import { licenses } from "$lib/meta";
     import { client } from "$lib/api";
 

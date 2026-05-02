@@ -2,8 +2,9 @@
 <!-- Reference: https://dribbble.com/shots/16221169-Figma-Material-Ui-components-Steppers-and-sliders -->
 
 <script lang="ts">
-    import { getContext, hasContext, onDestroy, onMount, type Snippet } from "svelte";
+    import { getContext, hasContext, onDestroy, onMount } from "svelte";
     import type { Writable } from "svelte/store";
+    import type { Snippet } from "svelte";
     import { dynamicTransition } from "$lib/skeleton/transitions";
 
     // Types

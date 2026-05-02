@@ -5,7 +5,8 @@
     import { onMount } from "svelte";
     import Version from "$components/ui/Version.svelte";
     import { currentProject } from "$lib/state";
-    import { unwrapOrNull, type ProjectVersion } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { ProjectVersion } from "@modhost/api";
     import { client } from "$lib/api";
 
     const id = $derived($page.params.id);

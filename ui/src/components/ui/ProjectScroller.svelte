@@ -2,8 +2,8 @@
     import { capText, splitToRows } from "$lib/util";
     import { onMount } from "svelte";
     import ScrollingProject from "./ScrollingProject.svelte";
-    import { unwrapOrNull, type FullProject } from "@modhost/api";
-    import { client } from "$lib/api";
+    import type { FullProject } from "@modhost/api";
+    import { searchProjects } from "$lib/state";
 
     const rows = 3;
     const maxPkgs = 30;
@@ -13,7 +13,7 @@
     let selected = $derived(splitToRows(projects, rows));
 
     onMount(async () => {
-        const pkgs = unwrapOrNull(await client.search(undefined, 1, 100));
+        const pkgs = await searchProjects(undefined, 1, 100, "none", "desc", []);
 
         if (pkgs) {
             projects = pkgs.hits >= maxPkgs ? pkgs.results.slice(0, maxPkgs) : pkgs.results;

@@ -2,12 +2,8 @@
     import BetterStep from "$components/ui/stepper/BetterStep.svelte";
     import Icon from "@iconify/svelte";
     import type { ProjectVisibility } from "@modhost/api";
-    import {
-        Autocomplete,
-        popup,
-        type AutocompleteOption,
-        type PopupSettings,
-    } from "@skeletonlabs/skeleton";
+    import { Autocomplete, popup } from "@skeletonlabs/skeleton";
+    import type { AutocompleteOption, PopupSettings } from "@skeletonlabs/skeleton";
 
     interface Props {
         license: string;

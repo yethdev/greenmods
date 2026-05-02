@@ -33,6 +33,10 @@ pub fn router(state: AppState) -> Router<AppState> {
             "/{version}/download/{file}",
             get(download::download_handler),
         )
+        .route(
+            "/{version}/download/{file}/mod-only",
+            get(download::mod_only_download_handler),
+        )
         .with_state(state)
 }
 
@@ -129,6 +133,7 @@ fn validate_known_values(field: &str, values: &[String], known: &HashSet<&str>) 
     create::create_handler,
     delete::delete_handler,
     download::download_handler,
+    download::mod_only_download_handler,
     info::info_handler,
     list::list_handler,
     update::update_handler,

@@ -42,3 +42,4 @@ utoipa-scalar.workspace = true
 utoipa-swagger-ui.workspace = true
 axum-tracing-opentelemetry.workspace = true
 sea-orm.workspace = true
+zip.workspace = true

@@ -3,11 +3,13 @@
     import { onMount } from "svelte";
     import { currentProject, editSaving, updateSearchResults } from "$lib/state";
     import Icon from "@iconify/svelte";
-    import { getToastStore, type AutocompleteOption } from "@skeletonlabs/skeleton";
+    import { getToastStore } from "@skeletonlabs/skeleton";
+    import type { AutocompleteOption } from "@skeletonlabs/skeleton";
     import { goto } from "$app/navigation";
     import { Carta } from "carta-md";
     import { siteConfig } from "$lib/config";
-    import { ErrorResponse, type ProjectVisibility } from "@modhost/api";
+    import { ErrorResponse } from "@modhost/api";
+    import type { ProjectVisibility } from "@modhost/api";
     import { licenses } from "$lib/meta";
     import { client } from "$lib/api";
     import Step1 from "./Step1.svelte";

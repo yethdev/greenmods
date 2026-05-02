@@ -1741,6 +1741,8 @@ dependencies = [
  "bytes",
  "modhost",
  "quickhost",
+ "tempfile",
+ "zip 5.1.1",
 ]
 
 [[package]]
@@ -2959,6 +2961,7 @@ dependencies = [
  "utoipa-redoc",
  "utoipa-scalar",
  "utoipa-swagger-ui",
+ "zip 5.1.1",
 ]
 
 [[package]]

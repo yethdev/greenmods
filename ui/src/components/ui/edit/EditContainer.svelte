@@ -2,7 +2,7 @@
     import { _ } from "svelte-i18n";
     import { page } from "$app/state";
     import { fly } from "svelte/transition";
-    import { type Snippet } from "svelte";
+    import type { Snippet } from "svelte";
     import { getToastStore, ProgressRadial } from "@skeletonlabs/skeleton";
     import { currentProject, editLoadingState, editSaving } from "$lib/state";
     import { siteConfig } from "$lib/config";

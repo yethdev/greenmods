@@ -5,7 +5,8 @@
     import { currentProject } from "$lib/state";
     import Icon from "@iconify/svelte";
     import { getModalStore } from "@skeletonlabs/skeleton";
-    import { unwrapOrNull, type GalleryImage } from "@modhost/api";
+    import { unwrapOrNull } from "@modhost/api";
+    import type { GalleryImage } from "@modhost/api";
     import { client } from "$lib/api";
 
     const id = $derived($page.params.id);

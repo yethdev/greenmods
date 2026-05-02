@@ -8,8 +8,7 @@
     }
 
     let { selectedTags = $bindable() }: Props = $props();
-    const hasTested = $derived(selectedTags.includes("tested"));
-    const locked = $derived(!hasTested || selectedTags.length < 1);
+    const locked = $derived(selectedTags.length < 1);
 
     const toggleTag = (id: string) => {
         if (selectedTags.includes(id)) {
@@ -30,16 +29,12 @@
 <BetterStep {header} {locked}>
     <div class="card variant-soft-primary w-full p-4">
         <p class="text-primary-500 mb-2 flex flex-row items-center justify-start">
-            <Icon icon="tabler:shield-check" height="24" class="mr-2" />
-            Required status
+            <Icon icon="tabler:tags" height="24" class="mr-2" />
+            Required tags
         </p>
 
-        <p class="mb-4 text-sm opacity-70">
-            Select Tested after you have checked the mod against a known Subnautica 2 build.
-        </p>
-
-        {#if !hasTested}
-            <p class="text-error-500 mb-3 text-sm">The Tested tag is required.</p>
+        {#if locked}
+            <p class="text-error-500 mb-3 text-sm">Choose at least one tag.</p>
         {/if}
 
         <div class="flex flex-wrap gap-2">

@@ -25,4 +25,12 @@ export class ProjectFilesWrapper {
     public downloadUrl(file: string | number) {
         return this._client.downloadProjectVersionUrl(this._project, this._version, file);
     }
+
+    public downloadModOnly(file: string | number) {
+        return this._client.downloadProjectVersionModOnly(this._project, this._version, file);
+    }
+
+    public downloadModOnlyUrl(file: string | number) {
+        return this._client.downloadProjectVersionModOnlyUrl(this._project, this._version, file);
+    }
 }

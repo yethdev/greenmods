@@ -7,7 +7,7 @@ use crate::{
 use modhost_core::{AppError, Result};
 use rsbadges::{Badge, Style};
 
-/// The default GreenMods color for the badge message.
+/// The default greenmods color for the badge message.
 pub const DEFAULT_GREEN: &str = "#16a34a";
 
 /// The default gray color for the badge label.

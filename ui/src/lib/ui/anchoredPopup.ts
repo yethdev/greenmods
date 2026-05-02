@@ -6,7 +6,7 @@ import { get } from "svelte/store";
 
 export function anchoredPopup(
     triggerNode: HTMLElement,
-    args: PopupSettings & { anchor: () => HTMLElement },
+    args: PopupSettings & { anchor: () => HTMLElement | null },
 ) {
     // Floating UI Modules
     const {
@@ -25,7 +25,7 @@ export function anchoredPopup(
     // Local State
     const popupState = {
         open: false,
-        autoUpdateCleanup: () => {},
+        autoUpdateCleanup: () => { },
     };
 
     const focusableAllowedList =
@@ -37,7 +37,7 @@ export function anchoredPopup(
     // Elements
     let elemPopup: HTMLElement;
     let elemArrow: HTMLElement;
-    let anchorNode: HTMLElement = args.anchor();
+    let anchorNode: HTMLElement | null = args.anchor();
 
     function setDomElements(): void {
         elemPopup =
@@ -52,6 +52,12 @@ export function anchoredPopup(
 
     // Render Floating UI Popup
     function render(): void {
+        anchorNode = args.anchor();
+
+        if (!anchorNode || !anchorNode.isConnected || !elemPopup || !elemPopup.isConnected) {
+            return;
+        }
+
         // Error handling for required Floating UI modules
         if (!elemPopup)
             throw new Error(
@@ -97,8 +103,6 @@ export function anchoredPopup(
 
         // https://floating-ui.com/docs/inline
         if (inline) optionalMiddleware.push(inline(args.middleware?.inline));
-
-        anchorNode = args.anchor();
 
         // Floating UI Compute Position
         // https://floating-ui.com/docs/computePosition
@@ -157,6 +161,7 @@ export function anchoredPopup(
         if (args.state) args.state({ state: popupState.open });
         // Update render settings
         render();
+        if (!anchorNode) return;
         // Update the DOM
         elemPopup.style.display = "block";
         elemPopup.style.opacity = "1";
@@ -165,7 +170,7 @@ export function anchoredPopup(
         elemPopup.removeAttribute("inert");
         // Trigger Floating UI autoUpdate (open only)
         // https://floating-ui.com/docs/autoUpdate
-        popupState.autoUpdateCleanup = autoUpdate(triggerNode, elemPopup, render);
+        popupState.autoUpdateCleanup = autoUpdate(anchorNode, elemPopup, render);
         // Focus the first focusable element within the popup
         focusablePopupElements = Array.from(elemPopup?.querySelectorAll(focusableAllowedList));
     }
@@ -297,17 +302,13 @@ export function anchoredPopup(
 
     window.addEventListener("keydown", onWindowKeyDown, true);
 
-    // Render popup on initialization
-    render();
-
     // Lifecycle
     return {
-        update(newArgs: PopupSettings & { anchor: () => HTMLElement }) {
+        update(newArgs: PopupSettings & { anchor: () => HTMLElement | null }) {
             close(() => {
                 args = newArgs;
-                anchorNode = args.anchor();
-                render();
                 setDomElements();
+                if (popupState.open) render();
             });
         },
 
