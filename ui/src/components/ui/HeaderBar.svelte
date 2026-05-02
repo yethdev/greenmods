@@ -52,7 +52,7 @@
         </button>
 
         <a class="flex items-center gap-2" href="/">
-            <img src="/favicon.png" alt="logo" class="rounded-token aspect-square w-8 min-w-8" />
+            <img src="/modhost.png" alt="logo" class="rounded-token aspect-square w-8 min-w-8" />
             <span class="hidden lg:inline">{siteConfig.siteName}</span>
 
             {#if siteConfig.showBeta}

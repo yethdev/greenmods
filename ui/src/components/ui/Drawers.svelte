@@ -16,7 +16,7 @@
         <div class="flex flex-col p-4">
             <p class="flex items-center gap-2">
                 <img
-                    src="/favicon.png"
+                    src="/modhost.png"
                     alt="logo"
                     class="rounded-token aspect-square w-8 min-w-8"
                 />

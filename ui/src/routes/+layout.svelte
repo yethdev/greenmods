@@ -102,7 +102,7 @@
     <title>Loading - {siteConfig.siteName}</title>
     <meta property="og:title" content={siteConfig.siteName} />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/favicon.png" />
+    <meta property="og:image" content="/modhost.png" />
     <meta property="og:description" content={siteConfig.tagline} />
     <meta name="theme-color" content={siteConfig.themeColor} />
 </svelte:head>
