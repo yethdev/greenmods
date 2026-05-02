@@ -67,9 +67,7 @@ export class Client {
             fullHeaders["Authorization"] = `Bearer ${this._token}`;
         }
 
-        if (body instanceof FormData) {
-            fullHeaders["Content-Type"] = "multipart/form-data";
-        } else if (typeof body === "object") {
+        if (!(body instanceof FormData) && !(body instanceof Blob) && typeof body === "object") {
             fullHeaders["Content-Type"] = "application/json";
         }
 
@@ -217,6 +215,7 @@ export class Client {
             true,
             "PUT",
             `/projects/${project}/gallery`,
+            {},
             form,
         );
     }
@@ -325,6 +324,7 @@ export class Client {
             true,
             "PUT",
             `/projects/${project}/versions`,
+            {},
             form,
         );
     }
