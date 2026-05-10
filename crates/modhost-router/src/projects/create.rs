@@ -1,8 +1,8 @@
 //! The project create route.
 
 use super::{
-    bad_request, clean_link, clean_tags, validate_project_description, validate_project_name,
-    validate_project_readme, validate_project_tags, validate_slug,
+    bad_request, clean_link, clean_tags, github, validate_project_description,
+    validate_project_name, validate_project_readme, validate_project_tags, validate_slug,
 };
 use axum::{
     Json,
@@ -164,6 +164,8 @@ pub async fn create_handler(
     }
     .insert(&state.db)
     .await?;
+
+    github::sync_source_config(&pkg, pkg.source.as_deref(), &state).await?;
 
     state.search.update_project(pkg.id, &state.db).await?;
 

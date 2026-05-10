@@ -7,24 +7,26 @@
         fixLoaderName,
         getLoaders,
         getGameVersions,
+        isNexusSource,
         markdownInline,
         formatDate,
         copyText,
+        getProjectCreators,
     } from "$lib/util";
     import { onMount } from "svelte";
     import { getToastStore } from "@skeletonlabs/skeleton";
     import { base } from "$app/paths";
-    import { currentProject, getProjectForDisplay, getProjectVersionsForDisplay } from "$lib/state";
+    import { getProjectPreviewImage } from "$lib/api";
+    import { currentProject, getProjectDisplayData } from "$lib/state";
     import { tryAggregateVersions } from "$lib/vers";
     import { siteConfig } from "$lib/config";
     import Icon from "@iconify/svelte";
     import { pkgRoutes } from "$lib/routes";
     import ProjectTabs from "$components/ui/ProjectTabs.svelte";
-    import { unwrapOrNull } from "@modhost/api";
-    import type { GalleryImage, ProjectVersion, ProjectVisibility, Tag } from "@modhost/api";
+    import type { FullProject, ProjectVersion, ProjectVisibility, Tag } from "@modhost/api";
     import { user } from "$lib/user";
     import { tags as allTags } from "$lib/meta";
-    import { client } from "$lib/api";
+    import { absoluteSiteUrl, trimDescription } from "$lib/seo";
 
     const maxVersions = 10;
     const id = $derived($page.params.id);
@@ -40,7 +42,7 @@
     let tags = $state<Tag[]>([]);
     let license = $state<string | undefined>(undefined);
     let vis = $state<ProjectVisibility>("Public");
-    let image = $state<GalleryImage | undefined>(undefined);
+    let imageUrl = $state<string | undefined>(undefined);
 
     const loaders = $derived(getLoaders(versions));
     const gameVersions = $derived(getGameVersions(versions));
@@ -48,6 +50,41 @@
     const hasRepo = $derived(repo != "");
     const hasIssues = $derived(issues != "");
     const hasWiki = $derived(wiki != "");
+    const sourceIsNexus = $derived(isNexusSource(repo));
+    const projectUrl = $derived(absoluteSiteUrl(`/p/${id}`));
+    const projectImage = $derived(imageUrl ?? absoluteSiteUrl("/modhost.png"));
+    const projectDescription = $derived(
+        trimDescription(
+            $currentProject?.description,
+            `View loaders, supported game versions, tags, and source links for ${name || id}.`,
+        ),
+    );
+    const projectKeywords = $derived(
+        [...new Set([...tags.map((tag) => tag.name), ...loaders.map((loader) => fixLoaderName(loader))])].join(", "),
+    );
+    const projectJsonLd = $derived(
+        !$currentProject
+            ? ""
+            : JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "CreativeWork",
+                  name: $currentProject.name,
+                  description: projectDescription,
+                  url: projectUrl,
+                  image: projectImage,
+                  genre: "Subnautica 2 mod",
+                  datePublished: $currentProject.created_at,
+                  dateModified: $currentProject.updated_at,
+                  keywords: tags.map((tag) => tag.name),
+                  author: getProjectCreators($currentProject).map((author) => ({
+                      "@type": "Person",
+                      name: author.name,
+                      url: author.external ? author.href : absoluteSiteUrl(author.href ?? "/"),
+                  })),
+                  sameAs: [repo, issues, wiki].filter(Boolean),
+              }),
+    );
+    const projectCreators = $derived($currentProject ? getProjectCreators($currentProject) : []);
 
     const canEdit = $derived(
         ($currentProject && $user && !!$currentProject.authors.find((v) => v.id == $user.id)) ||
@@ -64,32 +101,33 @@
         await copyText($currentProject.id.toString(), toasts);
     };
 
-    onMount(async () => {
-        $currentProject = await getProjectForDisplay(id);
-        versions = await getProjectVersionsForDisplay(id);
+    const applyProjectData = async (project: FullProject | null, nextVersions: ProjectVersion[]) => {
+        $currentProject = project;
+        versions = nextVersions;
 
-        if ($currentProject) {
-            name = $currentProject.name;
-            repo = $currentProject.source ?? "";
-            issues = $currentProject.issues ?? "";
-            wiki = $currentProject.wiki ?? "";
-            license = $currentProject.license;
-            vis = $currentProject.visibility;
-            tags =
-                $currentProject.tags
-                    ?.filter((t) => !!$allTags.find((v) => v.id == t))
-                    .map((t) => $allTags.find((v) => v.id == t)!) ?? [];
-
-            loadingState = "ready";
-
-            const gallery = unwrapOrNull(await client.project(id).gallery().list()) ?? [];
-
-            if (gallery.length >= 1) {
-                image = gallery[0];
-            }
-        } else {
+        if (!$currentProject) {
+            imageUrl = undefined;
             loadingState = "failed";
+            return;
         }
+
+        name = $currentProject.name;
+        repo = $currentProject.source ?? "";
+        issues = $currentProject.issues ?? "";
+        wiki = $currentProject.wiki ?? "";
+        license = $currentProject.license;
+        vis = $currentProject.visibility;
+        tags =
+            $currentProject.tags
+                ?.filter((t) => !!$allTags.find((v) => v.id == t))
+                .map((t) => $allTags.find((v) => v.id == t)!) ?? [];
+        imageUrl = await getProjectPreviewImage(id);
+        loadingState = "ready";
+    };
+
+    onMount(async () => {
+        const { project, versions } = await getProjectDisplayData(id);
+        await applyProjectData(project, versions);
     });
 
     beforeNavigate(({ to }) => {
@@ -106,27 +144,8 @@
     });
 
     const reset = async () => {
-        $currentProject = await getProjectForDisplay(id);
-        versions = await getProjectVersionsForDisplay(id);
-
-        if ($currentProject) {
-            name = $currentProject.name;
-            repo = $currentProject.source ?? "";
-            issues = $currentProject.issues ?? "";
-            wiki = $currentProject.wiki ?? "";
-            license = $currentProject.license;
-            vis = $currentProject.visibility;
-
-            loadingState = "ready";
-
-            const gallery = unwrapOrNull(await client.project(id).gallery().list()) ?? [];
-
-            if (gallery.length >= 1) {
-                image = gallery[0];
-            }
-        } else {
-            loadingState = "failed";
-        }
+        const { project, versions } = await getProjectDisplayData(id);
+        await applyProjectData(project, versions);
     };
 
     const aggVersions = $derived(tryAggregateVersions(gameVersions));
@@ -134,7 +153,23 @@
 </script>
 
 <svelte:head>
-    <title>{$currentProject?.name ?? $_("site.loading")} - {siteConfig.siteName}</title>
+    <title>{$currentProject?.name ?? $_("site.loading")} | {siteConfig.siteName}</title>
+    <meta name="description" content={projectDescription} />
+    <link rel="canonical" href={projectUrl} />
+    <meta property="og:title" content={$currentProject?.name ?? siteConfig.siteName} />
+    <meta property="og:description" content={projectDescription} />
+    <meta property="og:url" content={projectUrl} />
+    <meta property="og:image" content={projectImage} />
+    <meta property="og:image:alt" content={`${$currentProject?.name ?? siteConfig.siteName} preview image`} />
+    <meta name="twitter:title" content={$currentProject?.name ?? siteConfig.siteName} />
+    <meta name="twitter:description" content={projectDescription} />
+    <meta name="twitter:image" content={projectImage} />
+    {#if projectKeywords}
+        <meta name="keywords" content={projectKeywords} />
+    {/if}
+    {#if projectJsonLd}
+        <script type="application/ld+json">{projectJsonLd}</script>
+    {/if}
 </svelte:head>
 
 {#if loadingState == "loading"}
@@ -144,11 +179,12 @@
         <div
             class="card flex w-full flex-col items-start justify-start gap-2 self-baseline p-4 md:w-[30%]"
         >
-            {#if image}
+            {#if imageUrl}
                 <img
-                    src={image.url}
-                    alt={image.name}
+                    src={imageUrl}
+                    alt={`${name} preview image`}
                     class="aspect-square w-[40%] rounded-lg object-cover"
+                    decoding="async"
                 />
             {/if}
 
@@ -267,8 +303,12 @@
                     href={repo}
                     class="anchor hover:border-b-primary-500 select-text border-b-2 border-b-transparent no-underline transition-all"
                     target="_blank"
+                    rel="noreferrer"
                 >
                     {$_("package.source")}
+                    {#if sourceIsNexus}
+                        <Icon icon="tabler:external-link" class="ml-1 inline-block" width="16" />
+                    {/if}
                 </a>
             {/if}
 
@@ -277,6 +317,7 @@
                     href={issues}
                     class="anchor hover:border-b-primary-500 select-text border-b-2 border-b-transparent no-underline transition-all"
                     target="_blank"
+                    rel="noopener noreferrer"
                 >
                     {$_("package.issues")}
                 </a>
@@ -287,6 +328,7 @@
                     href={wiki}
                     class="anchor hover:border-b-primary-500 select-text border-b-2 border-b-transparent no-underline transition-all"
                     target="_blank"
+                    rel="noopener noreferrer"
                 >
                     {$_("package.wiki")}
                 </a>
@@ -306,25 +348,39 @@
 
             <dt class="text-sm opacity-50">{$_("package.created_by")}</dt>
 
-            {#each $currentProject.authors as author}
+            {#each projectCreators as author}
                 <a
                     class="card hover:variant-soft-primary flex w-full flex-row items-center p-2"
-                    href="{base}/u/{author.username}"
+                    href={author.href ?? `${base}/u/unknown`}
+                    target={author.external ? "_blank" : undefined}
+                    rel={author.external ? "noreferrer" : undefined}
                 >
-                    {#if author.github_id == -1}
+                    {#if author.kind == "nexus"}
+                        <span
+                            class="bg-[#da8d32] text-black rounded-token my-auto mr-4 flex aspect-square h-8 items-center justify-center"
+                            aria-label="Nexus Mods"
+                        >
+                            <Icon icon="simple-icons:nexusmods" class="h-4 w-4" />
+                        </span>
+                    {:else if author.githubId == -1}
                         <img
                             src="/modhost.png"
-                            alt="author's profile afirst child cssvatar"
+                            alt="author's profile avatar"
                             class="rounded-token my-auto mr-4 aspect-square h-8"
+                            loading="lazy"
+                            decoding="async"
                         />
                     {:else}
                         <img
-                            src="https://avatars.githubusercontent.com/u/{author.github_id}"
-                            alt="author's profile afirst child cssvatar"
+                            src="https://avatars.githubusercontent.com/u/{author.githubId}"
+                            alt="author's profile avatar"
                             class="rounded-token my-auto mr-4 aspect-square h-8"
+                            loading="lazy"
+                            decoding="async"
+                            referrerpolicy="no-referrer"
                         />
                     {/if}
-                    {author.username}
+                    {author.name}
                 </a>
             {/each}
 

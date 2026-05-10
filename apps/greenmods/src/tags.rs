@@ -2,6 +2,8 @@ use modhost::{Tag, tags};
 
 pub fn tags() -> Vec<Tag> {
     tags![
+        "subnautica-1", "Subnautica 1", "tabler:anchor";
+        "subnautica-below-zero", "Below Zero", "tabler:snowflake";
         "co-op-ready", "Co-op ready", "tabler:users";
         "single-player", "Single-player", "tabler:user";
         "client-side", "Client-side", "tabler:device-desktop";

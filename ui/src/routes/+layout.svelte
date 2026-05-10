@@ -33,8 +33,15 @@
     import { initMeta } from "$lib/meta";
     import Popups from "$components/ui/Popups.svelte";
     import ConfirmDeleteGenericModal from "$components/modals/ConfirmDeleteGenericModal.svelte";
+    import {
+        absoluteSiteUrl,
+        canonicalPathForRoute,
+        robotsDirectiveForRoute,
+    } from "$lib/seo";
 
-    const { data, children }: { data: any; children: Snippet } = $props();
+    const { children }: { children: Snippet } = $props();
+    const siteDescription =
+        "Open mod hosting for Subnautica, Below Zero, and Subnautica 2 with GitHub sync, collections, and compatibility notes.";
     let navigating = $state(false);
 
     const modalRegistry: Record<string, ModalComponent> = {
@@ -97,14 +104,35 @@
             });
         });
     });
+
+    const canonicalHref = $derived(
+        absoluteSiteUrl(canonicalPathForRoute($page.route.id, $page.url.pathname)),
+    );
+    const robotsDirective = $derived(robotsDirectiveForRoute($page.route.id));
+    const openGraphType = $derived($page.route.id?.startsWith("/p/") ? "article" : "website");
+    const socialImageUrl = absoluteSiteUrl("/modhost.png");
 </script>
 
 <svelte:head>
-    <title>Loading - {siteConfig.siteName}</title>
+    <title>{siteConfig.siteName}</title>
+    <link rel="canonical" href={canonicalHref} />
+    <meta name="description" content={siteDescription} />
+    <meta name="application-name" content={siteConfig.siteName} />
+    <meta name="robots" content={robotsDirective} />
+    <meta name="googlebot" content={robotsDirective} />
     <meta property="og:title" content={siteConfig.siteName} />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/modhost.png" />
-    <meta property="og:description" content={siteConfig.tagline} />
+    <meta property="og:site_name" content={siteConfig.siteName} />
+    <meta property="og:type" content={openGraphType} />
+    <meta property="og:url" content={canonicalHref} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta property="og:image:alt" content="Preview of the greenmods mod library" />
+    <meta property="og:description" content={siteDescription} />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={siteConfig.siteName} />
+    <meta name="twitter:description" content={siteDescription} />
+    <meta name="twitter:image" content={socialImageUrl} />
+    <meta name="twitter:image:alt" content="Preview of the greenmods mod library" />
     <meta name="theme-color" content={siteConfig.themeColor} />
 </svelte:head>
 
@@ -135,9 +163,9 @@
         onscroll={handleScroll}
     >
         <main class="flex-auto">
-            {#if $page.route.id == "/"}
+            {#if $page.route.id == "/" || $page.route.id == "/one" || $page.route.id == "/zero"}
                 <div class="container flex min-h-full w-full max-w-full flex-col">
-                    {#key data.href}
+                    {#key $page.url.href}
                         {@render children?.()}
                     {/key}
                 </div>
@@ -145,7 +173,7 @@
                 <div
                     class="container mx-auto flex min-h-full max-w-screen-lg flex-col space-y-2 p-4"
                 >
-                    {#key data.href}
+                    {#key $page.url.href}
                         {@render children?.()}
                     {/key}
                 </div>
@@ -157,16 +185,22 @@
                 <a
                     href="https://github.com/yethdev/greenmods"
                     class="anchor no-underline"
-                    target="_blank">GitHub</a
+                    target="_blank"
+                    rel="noopener noreferrer">GitHub</a
                 >
                 &bull;
                 <a
                     href="https://github.com/yethdev/greenmods/wiki"
                     class="anchor no-underline"
-                    target="_blank">Wiki</a
+                    target="_blank"
+                    rel="noopener noreferrer">Wiki</a
                 >
                 &bull;
-                <a href="/api/v1/docs/scalar" class="anchor no-underline" target="_blank"
+                <a
+                    href="/api/v1/docs/scalar"
+                    class="anchor no-underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     >API Docs</a
                 >
             </span>
@@ -176,13 +210,15 @@
                 <a
                     href="https://github.com/RedstoneWizard08/ModHost"
                     class="anchor no-underline"
-                    target="_blank">ModHost</a
+                    target="_blank"
+                    rel="noopener noreferrer">ModHost</a
                 >
                 {#if siteConfig.showCommit && siteConfig.origin && siteConfig.commit}
                     (<a
                         href="{siteConfig.origin}/commit/{siteConfig.commit}"
                         class="anchor no-underline"
-                        target="_blank">{siteConfig.commit}</a
+                        target="_blank"
+                        rel="noopener noreferrer">{siteConfig.commit}</a
                     >)
                 {/if}
             </span>

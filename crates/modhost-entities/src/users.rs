@@ -35,6 +35,8 @@ pub enum Relation {
     ModerationQueue,
     #[sea_orm(has_many = "super::project_authors::Entity")]
     ProjectAuthors,
+    #[sea_orm(has_many = "super::project_collections::Entity")]
+    ProjectCollections,
     #[sea_orm(has_many = "super::user_tokens::Entity")]
     UserTokens,
 }
@@ -54,6 +56,12 @@ impl Related<super::moderation_queue::Entity> for Entity {
 impl Related<super::project_authors::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ProjectAuthors.def()
+    }
+}
+
+impl Related<super::project_collections::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ProjectCollections.def()
     }
 }
 

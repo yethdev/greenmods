@@ -14,6 +14,7 @@ export interface SearchResults {
 type GameVersionFacet = ["game_versions", string[]];
 type LoadersFacet = ["loaders", string[]];
 type TagsFacet = ["tags", string[]];
+type ExcludeTagsFacet = ["exclude_tags", string[]];
 type PublishedFacet = ["published", [Date, Date]];
 type UpdatedFacet = ["updated", [Date, Date]];
 type DownloadsFacet = ["downloads", [number, number]];
@@ -22,6 +23,7 @@ export type Facet =
     | GameVersionFacet
     | LoadersFacet
     | TagsFacet
+    | ExcludeTagsFacet
     | PublishedFacet
     | UpdatedFacet
     | DownloadsFacet;
@@ -31,8 +33,8 @@ export type FacetType = Facet[0];
 export type FacetSerializer<T> = (facet: T) => [FacetType, (string | number)[]];
 
 const baseSerializer: FacetSerializer<
-    GameVersionFacet | LoadersFacet | TagsFacet | DownloadsFacet
-> = (facet: GameVersionFacet | LoadersFacet | TagsFacet | DownloadsFacet) => facet;
+    GameVersionFacet | LoadersFacet | TagsFacet | ExcludeTagsFacet | DownloadsFacet
+> = (facet: GameVersionFacet | LoadersFacet | TagsFacet | ExcludeTagsFacet | DownloadsFacet) => facet;
 
 const dateSerializer: FacetSerializer<PublishedFacet | UpdatedFacet> = (
     facet: PublishedFacet | UpdatedFacet,

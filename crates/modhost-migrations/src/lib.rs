@@ -20,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250915_155922_add_moderation::Migration),
             Box::new(m20250915_155925_rename_all_to_project::Migration),
             Box::new(m20250915_155928_add_moderators::Migration),
+            Box::new(m20260509_021500_add_collections_and_github_sync::Migration),
         ]
     }
 }
@@ -36,3 +37,4 @@ mod m20250915_155920_add_version_files;
 mod m20250915_155922_add_moderation;
 mod m20250915_155925_rename_all_to_project;
 mod m20250915_155928_add_moderators;
+mod m20260509_021500_add_collections_and_github_sync;

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { _ } from "svelte-i18n";
     import { page } from "$app/stores";
-    import { fixLoaderName, markdown, downloadFile, copyText } from "$lib/util";
+    import { fixLoaderName, markdown, downloadFile, copyText, isNexusSource } from "$lib/util";
     import { onMount } from "svelte";
     import { currentProject } from "$lib/state";
     import { siteConfig } from "$lib/config";
@@ -13,6 +13,7 @@
     import { user } from "$lib/user";
     import { client } from "$lib/api";
     import VersionFile from "$components/ui/VersionFile.svelte";
+    import { absoluteSiteUrl, trimDescription } from "$lib/seo";
 
     const maxVersions = 10;
     const id = $derived($page.params.id);
@@ -28,6 +29,22 @@
     const loaders = $derived((version as ProjectVersion | undefined)?.loaders ?? []);
     const gameVersions = $derived((version as ProjectVersion | undefined)?.game_versions ?? []);
     const aggVersions = $derived(tryAggregateVersions(gameVersions));
+    const hasFiles = $derived((version?.files?.length ?? 0) > 0);
+    const externalHref = $derived(isNexusSource($currentProject?.source) ? $currentProject?.source : null);
+    const versionUrl = $derived(absoluteSiteUrl(`/p/${id}/versions/${ver}`));
+    const versionTitle = $derived(
+        version && $currentProject
+            ? `${$currentProject.name} ${version.version_number} | ${siteConfig.siteName}`
+            : `${$_("site.loading")} - ${siteConfig.siteName}`,
+    );
+    const versionDescription = $derived(
+        version
+            ? trimDescription(
+                  changelog,
+                  `Version ${version.version_number} of ${$currentProject?.name ?? id} for Subnautica 2.`,
+              )
+            : `Version details for ${id} on ${siteConfig.siteName}.`,
+    );
 
     const canEdit = $derived(
         ($currentProject && $user && !!$currentProject.authors.find((v) => v.id == $user.id)) ||
@@ -43,7 +60,7 @@
         changelog = version.changelog;
     });
 
-    let doneTimeout: number | undefined;
+    let doneTimeout: ReturnType<typeof setTimeout> | undefined;
 
     const directDownload = async (ev: Event) => {
         ev.preventDefault();
@@ -67,7 +84,7 @@
 
         doneTimeout = setTimeout(() => {
             done = false;
-        }, 1000) as any;
+        }, 1000);
     };
 
     const copyVersionId = async () => {
@@ -78,7 +95,14 @@
 </script>
 
 <svelte:head>
-    <title>{version?.name ?? $_("site.loading")} - {siteConfig.siteName}</title>
+    <title>{versionTitle}</title>
+    <meta name="description" content={versionDescription} />
+    <link rel="canonical" href={versionUrl} />
+    <meta property="og:title" content={versionTitle} />
+    <meta property="og:description" content={versionDescription} />
+    <meta property="og:url" content={versionUrl} />
+    <meta name="twitter:title" content={versionTitle} />
+    <meta name="twitter:description" content={versionDescription} />
 </svelte:head>
 
 <div class="card flex w-full flex-col items-start justify-start p-4">
@@ -184,10 +208,24 @@
     </dt>
 
     <dd class="flex w-full gap-1">
-        <dl class="list-dl w-full">
-            {#each version?.files ?? [] as file}
-                <VersionFile {file} pkg={id} version={version!} />
-            {/each}
-        </dl>
+        {#if hasFiles}
+            <dl class="list-dl w-full">
+                {#each version?.files ?? [] as file}
+                    <VersionFile {file} pkg={id} version={version!} />
+                {/each}
+            </dl>
+        {:else if externalHref}
+            <a
+                href={externalHref}
+                target="_blank"
+                rel="noreferrer"
+                class="variant-soft-secondary btn flex w-full items-center justify-center gap-2"
+            >
+                <Icon icon="tabler:external-link" height="22" />
+                <span>View on Nexus Mods</span>
+            </a>
+        {:else}
+            <span class="opacity-60">No downloadable files are attached to this version.</span>
+        {/if}
     </dd>
 </section>

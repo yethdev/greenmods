@@ -5,8 +5,8 @@ use itertools::Itertools;
 use modhost_core::{AppError, Result};
 use modhost_db::{
     AsProjectData, DbConn, GalleryImage, ModerationQueueStatus, Project, ProjectData,
-    ProjectVisibility, User,
-    prelude::{GalleryImages, ProjectAuthors, Projects, Users},
+    ProjectVisibility, PublicProjectRepoSync, User,
+    prelude::{GalleryImages, ProjectAuthors, ProjectRepoSyncs, Projects, Users},
     projects,
 };
 use sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
@@ -99,7 +99,16 @@ pub async fn get_full_project(id: impl AsRef<str>, conn: &DbConn) -> Result<Proj
         .filter_map(|(_, it)| it)
         .collect_vec();
 
-    Ok(proj.with_authors(authors))
+    let repo_sync = proj
+        .find_related(ProjectRepoSyncs)
+        .one(conn)
+        .await?
+        .map(PublicProjectRepoSync::from);
+
+    let mut data = proj.with_authors(authors);
+    data.repo_sync = repo_sync;
+
+    Ok(data)
 }
 
 /// Get the gallery images for a project.

@@ -28,17 +28,28 @@
 
     const downloads = $derived(packages.reduce((a, b) => a + b.downloads, 0));
 
-    onMount(async () => {
+    const loadUserPage = async () => {
         loadingState = "loading";
         $userPreferencesStore.sortBy = guessSortMode($page.url.searchParams.get("sort") ?? "");
-        user = unwrapOrNull(await client.user(id).get());
+
+        const [loadedUser, loadedPackages] = await Promise.all([
+            client.user(id).get(),
+            client.user(id).projects(),
+        ]);
+
+        user = unwrapOrNull(loadedUser);
 
         if (user) {
-            packages = unwrapOrNull(await client.user(id).projects()) ?? [];
+            packages = unwrapOrNull(loadedPackages) ?? [];
             loadingState = "ready";
         } else {
+            packages = [];
             loadingState = "failed";
         }
+    };
+
+    onMount(async () => {
+        await loadUserPage();
     });
 
     beforeNavigate(() => {
@@ -50,16 +61,7 @@
     // This is incredibly scuffed but it works
     afterNavigate(async ({ to }) => {
         if (to?.route.id == "/u/[id]") {
-            loadingState = "loading";
-            $userPreferencesStore.sortBy = guessSortMode($page.url.searchParams.get("sort") ?? "");
-            user = unwrapOrNull(await client.user(id).get());
-
-            if (user) {
-                packages = unwrapOrNull(await client.user(id).projects()) ?? [];
-                loadingState = "ready";
-            } else {
-                loadingState = "failed";
-            }
+            await loadUserPage();
         }
     });
 </script>
@@ -78,12 +80,15 @@
                     src="/modhost.png"
                     alt="author's profile"
                     class="rounded-token mr-4 aspect-square h-16"
+                    decoding="async"
                 />
             {:else}
                 <img
                     src="https://avatars.githubusercontent.com/u/{user?.github_id}"
                     alt="author's profile"
                     class="rounded-token mr-4 aspect-square h-16"
+                    decoding="async"
+                    referrerpolicy="no-referrer"
                 />
             {/if}
 

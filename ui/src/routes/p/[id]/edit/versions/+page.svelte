@@ -17,7 +17,10 @@
     let loading = $state(true);
 
     onMount(async () => {
-        if (!$currentProject) return;
+        if (!$currentProject) {
+            loading = false;
+            return;
+        }
 
         vers = unwrapOrNull(await client.project(id).versions().list()) ?? [];
         loading = false;
@@ -52,7 +55,7 @@
     <div
         class="card variant-glass-surface flex w-full flex-row items-center justify-center p-4 py-16"
     >
-        No images found!
+        No versions found yet.
     </div>
 {/if}
 

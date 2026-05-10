@@ -2,6 +2,7 @@ import { env } from "$env/dynamic/public";
 
 export interface SiteConfig {
     siteName: string;
+    siteUrl: string;
     tagline: string;
     showBeta: boolean;
     type: "mods" | "packages";
@@ -19,8 +20,15 @@ const optionalEnv = (value: string | undefined): string | undefined => {
     return trimmed == "" ? undefined : trimmed;
 };
 
+const normalizeSiteUrl = (value: string | undefined): string => {
+    const siteUrl = optionalEnv(value) ?? "https://mods.yeth.dev";
+
+    return siteUrl.endsWith("/") ? siteUrl.slice(0, -1) : siteUrl;
+};
+
 export const siteConfig: SiteConfig = {
     siteName: (env.PUBLIC_APP ?? "greenmods").toLowerCase(),
+    siteUrl: normalizeSiteUrl(env.PUBLIC_SITE_URL),
     tagline: env.PUBLIC_TAGLINE ?? "Subnautica 2 mods that say what they support",
     showBeta: env.PUBLIC_SHOW_BETA == "true",
     type: env.PUBLIC_PKG_TYPE == "packages" ? "packages" : "mods",

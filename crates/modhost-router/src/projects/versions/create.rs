@@ -18,6 +18,7 @@ use object_store::{ObjectStore, PutPayload};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel, ModelTrait};
 use semver::Version;
 use sha1::{Digest, Sha1};
+use tokio::task;
 
 /// The initial data for creating a new project version.
 /// This should be formatted as "multipart/form-data".
@@ -41,11 +42,11 @@ pub struct ProjectVersionInit {
     pub game_versions: String,
 
     /// The file name.
-    pub file_name: String,
+    pub file_name: Option<String>,
 
     /// The file content.
     #[schema(content_media_type = "application/octet-stream")]
-    pub file: Vec<u8>,
+    pub file: Option<Vec<u8>>,
 }
 
 /// Upload Project Version
@@ -119,11 +120,11 @@ pub async fn create_handler(
         Err(AppError::MissingField("game_versions".into()))?;
     }
 
-    if file.is_none() {
-        Err(AppError::MissingField("file".into()))?;
-    }
+    if file.is_some() != file_name.is_some() {
+        if file.is_none() {
+            Err(AppError::MissingField("file".into()))?;
+        }
 
-    if file_name.is_none() {
         Err(AppError::MissingField("file_name".into()))?;
     }
 
@@ -131,8 +132,7 @@ pub async fn create_handler(
     let version_number = version_number.unwrap();
     let loaders = loaders.unwrap();
     let game_versions = game_versions.unwrap();
-    let file = file.unwrap();
-    let file_name = file_name.unwrap().trim().to_string();
+    let file_name = file_name.map(|value| value.trim().to_string());
 
     Version::parse(&version_number)?;
 
@@ -144,29 +144,23 @@ pub async fn create_handler(
         return bad_request(err);
     }
 
-    if let Some(err) = validate_file_name(&file_name, &state) {
-        return bad_request(err);
+    if let Some(file_name) = &file_name {
+        if let Some(err) = validate_file_name(file_name, &state) {
+            return bad_request(err);
+        }
     }
 
-    if !(state.verifier)(file.clone()) {
-        return bad_request("File did not pass greenmods upload validation.");
+    if let Some(file) = &file {
+        let verifier = state.verifier.clone();
+        let file = file.clone();
+        let verified = task::spawn_blocking(move || (*verifier)(file)).await.map_err(|err| {
+            AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))
+        })?;
+
+        if !verified {
+            return bad_request("File did not pass greenmods upload validation.");
+        }
     }
-
-    let mut hasher = Sha1::new();
-
-    hasher.update(&file);
-
-    let file_id = format!("{:x}", hasher.finalize());
-    let file_size = file.len() as i64;
-
-    state
-        .buckets
-        .projects
-        .put(
-            &format!("/{}", file_id).into(),
-            PutPayload::from_bytes(file),
-        )
-        .await?;
 
     let data = project_versions::ActiveModel {
         project: Set(pkg.id),
@@ -186,16 +180,34 @@ pub async fn create_handler(
     let pkg = pkg.update(&state.db).await?;
     let ver = data.insert(&state.db).await?;
 
-    let file = version_files::ActiveModel {
-        file_name: Set(file_name),
-        sha1: Set(file_id.clone()),
-        s3_id: Set(file_id),
-        version_id: Set(ver.id),
-        size: Set(file_size),
-        ..Default::default()
-    };
+    if let (Some(file), Some(file_name)) = (file, file_name) {
+        let mut hasher = Sha1::new();
 
-    file.insert(&state.db).await?;
+        hasher.update(&file);
+
+        let file_id = format!("{:x}", hasher.finalize());
+        let file_size = file.len() as i64;
+
+        state
+            .buckets
+            .projects
+            .put(
+                &format!("/{}", file_id).into(),
+                PutPayload::from_bytes(file),
+            )
+            .await?;
+
+        let file = version_files::ActiveModel {
+            file_name: Set(file_name),
+            sha1: Set(file_id.clone()),
+            s3_id: Set(file_id),
+            version_id: Set(ver.id),
+            size: Set(file_size),
+            ..Default::default()
+        };
+
+        file.insert(&state.db).await?;
+    }
 
     state.search.update_project(pkg.id, &state.db).await?;
 

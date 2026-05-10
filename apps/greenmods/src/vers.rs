@@ -2,6 +2,9 @@ use modhost::GameVersion;
 
 pub fn known_versions() -> Vec<GameVersion> {
     [
+        ("Legacy", false),
+        ("Living Large (2.0)", false),
+        ("Below Zero", false),
         ("early-access-2026.05", false),
         ("early-access", false),
         ("preview", true),

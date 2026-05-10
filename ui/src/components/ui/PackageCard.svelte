@@ -2,11 +2,11 @@
     import { _ } from "svelte-i18n";
     import { base } from "$app/paths";
     import { page } from "$app/state";
-    import { formatDate } from "$lib/util";
+    import { getProjectPreviewImage } from "$lib/api";
+    import { formatDate, getPrimaryProjectCreator } from "$lib/util";
     import { onMount } from "svelte";
-    import { unwrapOrNull } from "@modhost/api";
     import type { FullProject } from "@modhost/api";
-    import { client } from "$lib/api";
+    import Icon from "@iconify/svelte";
 
     interface Props {
         pkg: FullProject;
@@ -22,11 +22,10 @@
         $props();
 
     let img = $state<string | undefined>(undefined);
+    const creator = $derived(getPrimaryProjectCreator(pkg));
 
     onMount(async () => {
-        const gallery = unwrapOrNull(await client.project(pkg.id).gallery().list());
-
-        if (gallery && gallery.length > 0) img = gallery[0].url;
+        img = await getProjectPreviewImage(pkg.id);
     });
 </script>
 
@@ -40,18 +39,36 @@
 >
     {#if showAvatar && !compact}
         {#if img}
-            <img src={img} alt="package icon" class="my-auto mr-4 aspect-square h-16 rounded-lg" />
-        {:else if pkg.authors[0].github_id == -1}
+            <img
+                src={img}
+                alt="package icon"
+                class="my-auto mr-4 aspect-square h-16 rounded-lg"
+                loading="lazy"
+                decoding="async"
+            />
+        {:else if creator?.kind == "nexus"}
+            <span
+                class="bg-[#da8d32] text-black rounded-token my-auto mr-4 flex aspect-square h-8 items-center justify-center"
+                aria-label="Nexus Mods"
+            >
+                <Icon icon="simple-icons:nexusmods" class="h-4 w-4" />
+            </span>
+        {:else if creator?.githubId == -1 || !creator}
             <img
                 src="/modhost.png"
                 alt="author's profile avatar"
                 class="rounded-token my-auto mr-4 aspect-square h-8"
+                loading="lazy"
+                decoding="async"
             />
         {:else}
             <img
-                src={`https://avatars.githubusercontent.com/u/${pkg.authors[0].github_id}`}
+                src={`https://avatars.githubusercontent.com/u/${creator.githubId}`}
                 alt="author's profile avatar"
                 class="rounded-token my-auto mr-4 aspect-square h-8"
+                loading="lazy"
+                decoding="async"
+                referrerpolicy="no-referrer"
             />
         {/if}
     {/if}
@@ -59,7 +76,7 @@
         <dt class="mb-1 select-text font-bold">{pkg.name}</dt>
         <dd class="text-sm opacity-50">
             {#if showName}
-                {$_("list.by")} <span class="select-text">{pkg.authors[0].username}</span>
+                {$_("list.by")} <span class="select-text">{creator?.name ?? "Unknown"}</span>
             {/if}
         </dd>
         <dd class="text-sm opacity-50">

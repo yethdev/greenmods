@@ -1,8 +1,8 @@
 //! ModHost's OpenAPI system using [`utoipa`].
 
 use crate::{
-    admin::AdminApi, auth::AuthApi, meta::MetadataApi, moderation::ModerationApi,
-    projects::ProjectsApi, users::UsersApi,
+    admin::AdminApi, auth::AuthApi, collections::CollectionsApi, meta::MetadataApi, moderation::ModerationApi,
+    projects::ProjectsApi, users::UsersApi, util::UtilityApi,
 };
 use modhost_config::AppConfig;
 use utoipa::{
@@ -61,6 +61,7 @@ pub fn build_openapi(_config: &AppConfig) -> OpenApi {
     let tags = vec![
         make_tag("Admin", "Admin-related endpoints."),
         make_tag("Auth", "Authentication endpoints."),
+        make_tag("Collections", "Project collection endpoints."),
         make_tag("Users", "User-related endpoints."),
         make_tag("Projects", "Project-related endpoints."),
         make_tag("Gallery", "Project gallery-related endpoints."),
@@ -100,6 +101,8 @@ pub fn build_openapi(_config: &AppConfig) -> OpenApi {
     TokenAuthAddon.modify(&mut api);
 
     api.nest("/api/v1/auth", AuthApi::openapi())
+        .nest("/api/v1/collections", CollectionsApi::openapi())
+        .nest("/api/v1", UtilityApi::openapi())
         .nest("/api/v1/meta", MetadataApi::openapi())
         .nest("/api/v1/projects", ProjectsApi::openapi())
         .nest("/api/v1/users", UsersApi::openapi())

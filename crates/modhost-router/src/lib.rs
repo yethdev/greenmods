@@ -16,6 +16,7 @@ extern crate utoipa;
 pub mod admin;
 pub mod api;
 pub mod auth;
+pub mod collections;
 pub mod meta;
 pub mod moderation;
 pub mod openapi;
@@ -23,7 +24,7 @@ pub mod projects;
 pub mod users;
 pub mod util;
 
-use axum::{Router, middleware::from_fn};
+use axum::{Router, middleware::from_fn, routing::get};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use jsglue::{glue::Glue, util::is_debug};
 use modhost_config::AppConfig;
@@ -41,7 +42,12 @@ pub fn create_api_spec(config: &AppConfig) -> OpenApi {
 /// Create the router for ModHost.
 pub fn create_router(spec: &OpenApi, state: AppState, glue: Glue) -> Router {
     api::register(spec, glue.register(Router::new(), is_debug()))
+        .route("/healthz", get(util::health::livez_handler))
+        .route("/readyz", get(util::health::readyz_handler))
+        .route("/api/v1/health", get(util::health::livez_handler))
+        .route("/api/v1/ready", get(util::health::readyz_handler))
         .nest("/api/v1/auth", auth::router(state.clone()))
+        .nest("/api/v1/collections", collections::router(state.clone()))
         .nest("/api/v1/users", users::router(state.clone()))
         .nest("/api/v1/projects", projects::router(state.clone()))
         .nest("/api/v1/meta", meta::router(state.clone()))
@@ -57,6 +63,10 @@ pub fn create_router(spec: &OpenApi, state: AppState, glue: Glue) -> Router {
 
 modhost_core::utoipa_types![
     api::JsonQueryParams,
+    collections::create::NewCollection,
+    collections::update::PartialCollection,
+    projects::github::PartialProjectRepoSync,
+    projects::github::ProjectRepoSyncAdminData,
     projects::search::SearchQuery,
     projects::update::PartialProject,
     projects::versions::update::PartialProjectVersion,

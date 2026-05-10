@@ -12,7 +12,7 @@ readme.workspace = true
 ctrlc.workspace = true
 include_dir.workspace = true
 jsglue.workspace = true
-modhost-core = { workspace = true, features = ["tempfile", "zip"] }
+modhost-core = { workspace = true, features = ["tempfile", "zip", "reqwest"] }
 modhost-config.workspace = true
 reqwest.workspace = true
 serde_json.workspace = true

@@ -9,7 +9,7 @@
     import { Carta, MarkdownEditor } from "carta-md";
     import { goto } from "$app/navigation";
     import { formatBytes } from "$lib/util";
-    import { client } from "$lib/api";
+    import { client, invalidateProjectPreviewImage } from "$lib/api";
     import { unwrap } from "@modhost/api";
 
     const id = $derived($page.params.id);
@@ -74,6 +74,7 @@
         }
 
         $currentProject = unwrap(await client.project(id).get());
+        invalidateProjectPreviewImage(id);
         $editSaving = false;
 
         goto(`/p/${id}/edit/gallery`);

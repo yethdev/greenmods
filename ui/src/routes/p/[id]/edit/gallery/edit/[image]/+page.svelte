@@ -9,7 +9,7 @@
     import { unwrap, unwrapOrNull } from "@modhost/api";
     import type { PopupSettings } from "@skeletonlabs/skeleton";
     import type { GalleryImage } from "@modhost/api";
-    import { client } from "$lib/api";
+    import { client, invalidateProjectPreviewImage } from "$lib/api";
 
     const id = $derived($page.params.id);
     const imgId = $derived($page.params.image);
@@ -43,6 +43,7 @@
                 description: description == "" ? undefined : description,
             });
 
+        invalidateProjectPreviewImage(id);
         $currentProject = unwrap(await client.project(id).get());
         img = unwrapOrNull(await client.project(id).gallery().image(imgId).get());
 

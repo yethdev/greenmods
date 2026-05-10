@@ -19,8 +19,8 @@
     let modOnlyDownloading = $state(false);
     let done = $state(false);
     let modOnlyDone = $state(false);
-    let doneTimeout: number | undefined;
-    let modOnlyDoneTimeout: number | undefined;
+    let doneTimeout: ReturnType<typeof setTimeout> | undefined;
+    let modOnlyDoneTimeout: ReturnType<typeof setTimeout> | undefined;
     const canModOnly = $derived(file.file_name.toLowerCase().endsWith(".zip"));
 
     const directDownload = async (ev: Event) => {
@@ -41,7 +41,7 @@
 
             doneTimeout = setTimeout(() => {
                 done = false;
-            }, 1000) as any;
+            }, 1000);
         } catch (err) {
             toasts.trigger({
                 message: (err as Error).message || "Download failed.",
@@ -71,7 +71,7 @@
 
             modOnlyDoneTimeout = setTimeout(() => {
                 modOnlyDone = false;
-            }, 1000) as any;
+            }, 1000);
         } catch (err) {
             toasts.trigger({
                 message: (err as Error).message || "Mod only download failed.",

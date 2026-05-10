@@ -36,10 +36,10 @@ export interface ProjectFile {
 
 export interface ProjectVersionInit {
     name: string;
-    file_name: string;
     version_number: string;
     game_versions: string[];
     loaders: string[];
-    file: File | Blob;
+    file_name?: string;
+    file?: File | Blob;
     changelog?: string;
 }

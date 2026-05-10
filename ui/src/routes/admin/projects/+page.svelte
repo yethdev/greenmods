@@ -45,24 +45,24 @@
     const updateProjectList = async () => {
         loading = true;
 
-        const res = await client.admin().allProjects();
+        try {
+            const res = await client.admin().allProjects();
 
-        if (res instanceof ErrorResponse) {
+            if (res instanceof ErrorResponse) throw res;
+
+            projects = res.sort(
+                (a, b) => new Date(a.updated_at).valueOf() - new Date(b.updated_at).valueOf(),
+            );
+        } catch (ex) {
             toasts.trigger({
-                message: `Error: ${res}`,
+                message: `Error: ${ex}`,
                 hideDismiss: true,
                 timeout: 5000,
                 background: "variant-filled-error",
             });
-
-            return;
+        } finally {
+            loading = false;
         }
-
-        projects = res.sort(
-            (a, b) => new Date(a.updated_at).valueOf() - new Date(b.updated_at).valueOf(),
-        );
-
-        loading = false;
     };
 
     onMount(updateProjectList);

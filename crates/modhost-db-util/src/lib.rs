@@ -2,6 +2,7 @@
 #![allow(async_fn_in_trait)]
 //! ModHost's database utilities.
 
+pub mod collections;
 pub mod gallery;
 pub mod moderation;
 pub mod projects;

@@ -18,7 +18,7 @@ export const copyText = async (data: string, toasts: ToastStore) => {
     });
 };
 
-export const copyToClipboard = async (data: any, mimeType: string = "text/plain") => {
+export const copyToClipboard = async (data: string, mimeType: string = "text/plain") => {
     if (navigator.clipboard.write) {
         await navigator.clipboard.write([
             new ClipboardItem({
@@ -32,8 +32,6 @@ export const copyToClipboard = async (data: any, mimeType: string = "text/plain"
         ]);
     } else {
         // fallback since .writeText has wider browser support
-        await new Promise((resolve) => {
-            resolve(navigator.clipboard.writeText(String(data)));
-        });
+        await navigator.clipboard.writeText(data);
     }
 };

@@ -1,6 +1,8 @@
 import { Client } from "../client";
 import type { Facet, ProjectInit, SortDirection, SortMode } from "../models";
 import { AdminWrapper } from "./admin";
+import { CollectionWrapper } from "./collection";
+import { CollectionsWrapper } from "./collections";
 import { MetaWrapper } from "./meta";
 import { ProjectWrapper } from "./project";
 import { UserWrapper } from "./user";
@@ -9,7 +11,10 @@ export * from "./admin";
 export * from "./admin-user";
 export * from "./admin-project";
 export * from "./authors";
+export * from "./collection";
+export * from "./collections";
 export * from "./gallery";
+export * from "./github";
 export * from "./project";
 export * from "./versions";
 export * from "./files";
@@ -60,6 +65,14 @@ export class ModHostClient {
 
     public project(project: string | number) {
         return new ProjectWrapper(this._client, project);
+    }
+
+    public collection(collection: string | number) {
+        return new CollectionWrapper(this._client, collection);
+    }
+
+    public collections() {
+        return new CollectionsWrapper(this._client);
     }
 
     public meta() {

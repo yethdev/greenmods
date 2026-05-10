@@ -5,9 +5,16 @@
         "./ui"
     ],
     "scripts": {
-        "fmt": "prettier --write ui packages"
+        "fmt": "prettier --write ui packages",
+        "scan:nexus:upload-permissions": "node ./scripts/scan-nexus-upload-permissions.mjs",
+        "import:subnautica-one": "node ./scripts/import-subnautica-one-library.mjs",
+        "import:subnautica-one:watch": "node ./scripts/import-subnautica-one-library.mjs --watch",
+        "import:below-zero": "node ./scripts/import-subnautica-one-library.mjs --profile bz",
+        "import:below-zero:watch": "node ./scripts/import-subnautica-one-library.mjs --profile bz --watch"
     },
     "devDependencies": {
+        "fflate": "^0.8.2",
+        "patchright": "^1.59.4",
         "prettier": "^3.4.2",
         "prettier-plugin-svelte": "^3.3.2",
         "prettier-plugin-tailwindcss": "^0.6.9"

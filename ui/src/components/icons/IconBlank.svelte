@@ -2,7 +2,7 @@
     interface Props {
         size?: number;
         class?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     const { size = 24, class: klass, ...rest }: Props = $props();

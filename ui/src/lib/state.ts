@@ -69,6 +69,15 @@ export const getProjectVersionsForDisplay = async (
 ): Promise<ProjectVersion[]> =>
     unwrapTracked(await client.project(id).versions().list()) ?? [];
 
+export const getProjectDisplayData = async (id: string | number) => {
+    const [project, versions] = await Promise.all([
+        getProjectForDisplay(id),
+        getProjectVersionsForDisplay(id),
+    ]);
+
+    return { project, versions };
+};
+
 export const performSearch = async () => {
     const prefs = get(userPreferencesStore);
     const query = get(currentQuery);

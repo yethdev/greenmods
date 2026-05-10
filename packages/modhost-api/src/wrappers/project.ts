@@ -2,6 +2,7 @@ import type { Client } from "../client";
 import type { FullProject, ProjectInit } from "../models";
 import { AuthorsWrapper } from "./authors";
 import { GalleryWrapper } from "./gallery";
+import { ProjectGitHubWrapper } from "./github";
 import { VersionsWrapper } from "./versions";
 
 export class ProjectWrapper {
@@ -35,5 +36,9 @@ export class ProjectWrapper {
 
     public versions() {
         return new VersionsWrapper(this._client, this._project);
+    }
+
+    public github() {
+        return new ProjectGitHubWrapper(this._client, this._project);
     }
 }

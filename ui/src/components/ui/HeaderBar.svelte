@@ -11,16 +11,19 @@
     import Icon from "@iconify/svelte";
 
     let inputElement: HTMLInputElement = $state(null!);
-    let active = $state(false);
     const drawerStore = getDrawerStore();
+    const searchRouteIds = new Set(["/s", "/one/s", "/zero/s"]);
+    const isSearchRoute = (routeId: string | null | undefined) => searchRouteIds.has(routeId ?? "");
 
     onMount(() => {
-        $currentQuery = page.route.id == "/s" ? (page.url.searchParams.get("q") ?? "") : "";
+        $currentQuery = isSearchRoute(page.route.id) ? (page.url.searchParams.get("q") ?? "") : "";
     });
 
     const updateQuery = async () => {
-        if (page.route.id != "/s") {
-            await goto("/s", { keepFocus: true });
+        const targetPath = isSearchRoute(page.route.id) ? page.url.pathname : "/s";
+
+        if (!isSearchRoute(page.route.id)) {
+            await goto(targetPath, { keepFocus: true });
         }
 
         if ($currentQuery != "") page.url.searchParams.set("q", $currentQuery);
@@ -47,7 +50,12 @@
     background={$currentScrollPosition.y > 16 ? "bg-surface-800/75" : "bg-transparent"}
 >
     {#snippet lead()}
-        <button type="button" onclick={openHomeDrawer} class="mr-2 flex items-center">
+        <button
+            type="button"
+            onclick={openHomeDrawer}
+            class="mr-2 flex items-center"
+            aria-label="Open navigation"
+        >
             <Icon icon="tabler:menu-2" height="28" />
         </button>
 
@@ -78,10 +86,9 @@
                 type="search"
                 class="w-full transition-all"
                 placeholder={$_(`search.placeholder.${siteConfig.type}`)}
+                aria-label={$_(`search.placeholder.${siteConfig.type}`)}
                 bind:this={inputElement}
                 bind:value={$currentQuery}
-                onfocus={() => (active = true)}
-                onblur={() => (active = false)}
                 oninput={updateQuery}
                 onchange={updateQuery}
             />

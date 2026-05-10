@@ -1,5 +1,3 @@
-// Taken and modified from https://github.com/skeletonlabs/skeleton/blob/c96634a93dff4aa19340aae68f59261a096f682e/packages/skeleton/src/lib/components/Stepper/types.ts
-
 import type { EventDispatcher } from "svelte";
 
 export interface StepperState {

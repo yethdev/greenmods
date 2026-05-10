@@ -3,7 +3,10 @@
 use axum::{
     body::Body,
     extract::ConnectInfo,
-    http::{HeaderValue, Method, Request, StatusCode, header::RETRY_AFTER},
+    http::{
+        HeaderValue, Method, Request, StatusCode,
+        header::{AUTHORIZATION, FORWARDED, RETRY_AFTER},
+    },
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -28,6 +31,7 @@ enum Scope {
     Upload,
     Write,
     Search,
+    Meta,
     Download,
     General,
 }
@@ -63,11 +67,16 @@ pub async fn abuse_guard(
     req: Request<Body>,
     next: Next,
 ) -> Response {
+    if should_bypass(&req, addr.ip()) {
+        return next.run(req).await;
+    }
+
+    let client_ip = resolve_client_ip(&req, addr.ip());
     let scope = classify(req.method(), req.uri().path());
     let (max, window) = policy(scope);
     let now = Instant::now();
     let key = BucketKey {
-        ip: addr.ip(),
+        ip: client_ip,
         scope,
     };
 
@@ -103,17 +112,90 @@ pub async fn abuse_guard(
     next.run(req).await
 }
 
+fn should_bypass(req: &Request<Body>, ip: IpAddr) -> bool {
+    if !ip.is_loopback() || *req.method() == Method::GET {
+        return false;
+    }
+
+    req.headers()
+        .get(AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.trim_start().starts_with("Bearer "))
+}
+
+fn resolve_client_ip(req: &Request<Body>, socket_ip: IpAddr) -> IpAddr {
+    if !socket_ip.is_loopback() {
+        return socket_ip;
+    }
+
+    req.headers()
+        .get("cf-connecting-ip")
+        .and_then(|value| value.to_str().ok())
+        .and_then(parse_ip_token)
+        .or_else(|| {
+            req.headers()
+                .get("x-forwarded-for")
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.split(',').find_map(parse_ip_token))
+        })
+        .or_else(|| {
+            req.headers()
+                .get(FORWARDED)
+                .and_then(|value| value.to_str().ok())
+                .and_then(parse_forwarded_for)
+        })
+        .unwrap_or(socket_ip)
+}
+
+fn parse_forwarded_for(value: &str) -> Option<IpAddr> {
+    value.split(',').find_map(|entry| {
+        entry.split(';').find_map(|part| {
+            let part = part.trim();
+            part.strip_prefix("for=").and_then(parse_ip_token)
+        })
+    })
+}
+
+fn parse_ip_token(value: &str) -> Option<IpAddr> {
+    let value = value.trim().trim_matches('"');
+
+    if value.is_empty() || value.eq_ignore_ascii_case("unknown") {
+        return None;
+    }
+
+    if let Some(stripped) = value.strip_prefix('[') {
+        let end = stripped.find(']')?;
+        return stripped[..end].parse().ok();
+    }
+
+    value
+        .parse::<IpAddr>()
+        .ok()
+        .or_else(|| value.parse::<SocketAddr>().ok().map(|addr| addr.ip()))
+        .or_else(|| {
+            value.rsplit_once(':').and_then(|(host, port)| {
+                port.parse::<u16>()
+                    .ok()
+                    .and_then(|_| host.parse::<IpAddr>().ok())
+            })
+        })
+}
+
 fn classify(method: &Method, path: &str) -> Scope {
     if path.starts_with("/api/v1/auth") {
         return Scope::Auth;
     }
 
-    if path.contains("/download/") {
-        return Scope::Download;
+    if path.starts_with("/api/v1/meta") {
+        return Scope::Meta;
     }
 
     if path == "/api/v1/projects/search" {
         return Scope::Search;
+    }
+
+    if path.contains("/download/") {
+        return Scope::Download;
     }
 
     if method != Method::GET {
@@ -132,9 +214,10 @@ fn policy(scope: Scope) -> (u32, Duration) {
         Scope::Auth => (20, Duration::from_secs(10 * 60)),
         Scope::Upload => (40, Duration::from_secs(60 * 60)),
         Scope::Write => (90, Duration::from_secs(10 * 60)),
-        Scope::Search => (180, Duration::from_secs(60)),
+        Scope::Search => (1_200, Duration::from_secs(60)),
+        Scope::Meta => (3_600, Duration::from_secs(60)),
         Scope::Download => (600, Duration::from_secs(60)),
-        Scope::General => (360, Duration::from_secs(60)),
+        Scope::General => (2_400, Duration::from_secs(60)),
     }
 }
 

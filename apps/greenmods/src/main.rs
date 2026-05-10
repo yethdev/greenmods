@@ -1,6 +1,6 @@
 quickhost::quickhost! {
     versions = [greenmods::vers::known_versions()];
-    loaders = [modhost::loaders!["UE4SS", "Paks", "BepInEx", "Manual"]];
+    loaders = [modhost::loaders!["UE4SS", "Paks", "BepInEx", "QMod", "Manual"]];
     tags = [greenmods::tags::tags()];
     verifier = [greenmods::verify::verify_upload];
 }

@@ -16,6 +16,9 @@ pub enum Facet {
     /// Filter by tags. It will match any provided.
     Tags(Vec<String>),
 
+    /// Exclude projects with any of the provided tags.
+    ExcludeTags(Vec<String>),
+
     /// Filter by a range of dates when the project was published.
     /// The first element is the minimum date, the second is the maximum.
     /// The comparison is `(item.published >= a && item.published <= b)`
@@ -124,6 +127,7 @@ impl Facet {
                 Self::GameVersions(v) => format!("game_versions IN [{}]", v.join(", ")),
                 Self::Loaders(v) => format!("loaders IN [{}]", v.join(", ")),
                 Self::Tags(v) => format!("tags IN [{}]", v.join(", ")),
+                Self::ExcludeTags(v) => format!("NOT (tags IN [{}])", v.join(", ")),
                 Self::Published(start, end) => format!(
                     "(created_at >= {}) AND (created_at <= {})",
                     start.and_utc().timestamp(),
@@ -151,6 +155,7 @@ impl Facet {
             "game_versions" => Ok(Facet::GameVersions(it.1)),
             "loaders" => Ok(Facet::Loaders(it.1)),
             "tags" => Ok(Facet::Tags(it.1)),
+            "exclude_tags" => Ok(Facet::ExcludeTags(it.1)),
 
             "published" => {
                 if it.1.len() == 2 {

@@ -2,15 +2,45 @@ import type { User } from "./user";
 
 export type ProjectVisibility = "Public" | "Private" | "Unlisted";
 
+export interface ProjectRepoSync {
+    repo_owner: string;
+    repo_name: string;
+    default_branch?: string;
+    sync_readme: boolean;
+    sync_releases: boolean;
+    sync_faq: boolean;
+    sync_links: boolean;
+    last_push_sync_at?: string;
+    last_release_sync_at?: string;
+    last_error?: string;
+}
+
+export interface ProjectRepoSyncAdminData extends ProjectRepoSync {
+    webhook_path: string;
+    webhook_secret: string;
+}
+
+export interface ProjectRepoSyncPatch {
+    default_branch?: string;
+    sync_readme?: boolean;
+    sync_releases?: boolean;
+    sync_faq?: boolean;
+    sync_links?: boolean;
+}
+
 export interface Project {
     id: number;
     slug: string;
     name: string;
     description: string;
     downloads: number;
+    faq?: string;
+    install_json?: string;
     issues?: string;
     license?: string;
     readme: string;
+    repo_links?: string;
+    repo_sync?: ProjectRepoSync;
     source?: string;
     tags?: string[];
     visibility: ProjectVisibility;

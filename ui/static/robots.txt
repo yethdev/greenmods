@@ -1,2 +1,10 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /me
+Disallow: /new
+Disallow: /p/*/edit
+Disallow: /s
+
+Sitemap: https://mods.yeth.dev/sitemap.xml

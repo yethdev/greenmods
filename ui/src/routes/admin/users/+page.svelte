@@ -19,8 +19,6 @@
             ev.stopPropagation();
 
             showGenericDeleteModal(modals, {
-                // ¿Estás seguro que quieres que borrar este usuario?
-                // - me, after 4 years of spanish classes
                 message: `Are you sure you want to delete the user, ${user.username}?`,
                 callback: async () => {
                     try {
@@ -45,21 +43,22 @@
     const updateUserList = async () => {
         loading = true;
 
-        const res = await client.admin().allUsers();
+        try {
+            const res = await client.admin().allUsers();
 
-        if (res instanceof ErrorResponse) {
+            if (res instanceof ErrorResponse) throw res;
+
+            users = res;
+        } catch (ex) {
             toasts.trigger({
-                message: `Error: ${res}`,
+                message: `Error: ${ex}`,
                 hideDismiss: true,
                 timeout: 5000,
                 background: "variant-filled-error",
             });
-
-            return;
+        } finally {
+            loading = false;
         }
-
-        users = res;
-        loading = false;
     };
 
     onMount(updateUserList);

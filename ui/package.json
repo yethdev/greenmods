@@ -4,8 +4,8 @@
     "private": true,
     "scripts": {
         "dev": "vite",
-        "dist": "vite build",
-        "build": "vite build",
+        "dist": "vite build && bun ./scripts/postbuild-seo.mjs",
+        "build": "vite build && bun ./scripts/postbuild-seo.mjs",
         "preview": "vite preview",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

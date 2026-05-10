@@ -3,7 +3,8 @@ use std::{
     ffi::OsStr,
     io::{Cursor, Read, Write},
     path::Path,
-    process::Command,
+    process::{Command, Stdio},
+    time::{Duration, Instant},
 };
 use zip::ZipArchive;
 
@@ -12,6 +13,7 @@ const MAX_UPLOAD_BYTES: usize = 512 * 1024 * 1024;
 const MAX_ARCHIVE_DEPTH: usize = 4;
 const MAX_ARCHIVE_ENTRIES: usize = 512;
 const MAX_EXPANDED_ARCHIVE_BYTES: u64 = 1024 * 1024 * 1024;
+const DEFAULT_CLAMSCAN_TIMEOUT: Duration = Duration::from_secs(60);
 const ZIP_LOCAL_FILE: &[u8] = b"PK\x03\x04";
 const ZIP_EMPTY_ARCHIVE: &[u8] = b"PK\x05\x06";
 const UNREAL_PAK_MAGIC: &[u8] = &[0xe1, 0x12, 0x6f, 0x5a];
@@ -48,6 +50,8 @@ fn scan_payload(name: &str, bytes: &[u8], depth: usize) -> bool {
         return false;
     }
 
+    let allow_archive_binary = is_allowed_archive_binary(name, depth);
+
     if matches!(scan_with_clamav(bytes), Some(false)) {
         return false;
     }
@@ -56,11 +60,11 @@ fn scan_payload(name: &str, bytes: &[u8], depth: usize) -> bool {
         return false;
     }
 
-    if is_native_executable(bytes) {
+    if is_native_executable(bytes) && !allow_archive_binary {
         return false;
     }
 
-    if is_blocked_name(name) {
+    if is_blocked_name(name) && !allow_archive_binary {
         return false;
     }
 
@@ -69,6 +73,15 @@ fn scan_payload(name: &str, bytes: &[u8], depth: usize) -> bool {
     }
 
     true
+}
+
+fn is_allowed_archive_binary(name: &str, depth: usize) -> bool {
+    depth > 0
+        && Path::new(name)
+            .extension()
+            .and_then(OsStr::to_str)
+            .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "dll" | "so" | "dylib" | "exe"))
+            .unwrap_or(false)
 }
 
 fn scan_zip(bytes: &[u8], depth: usize) -> bool {
@@ -103,7 +116,7 @@ fn scan_zip(bytes: &[u8], depth: usize) -> bool {
 
         let path_text = path.to_string_lossy();
 
-        if is_blocked_name(&path_text) {
+        if is_blocked_name(&path_text) && !is_allowed_archive_binary(&path_text, depth) {
             return false;
         }
 
@@ -126,6 +139,11 @@ fn scan_with_clamav(bytes: &[u8]) -> Option<bool> {
         .ok()
         .filter(|value| !matches!(value.as_str(), "0" | "off" | "false" | "disabled"))
         .unwrap_or_else(|| "clamscan".into());
+    let timeout = std::env::var("GREENMODS_CLAMSCAN_TIMEOUT_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(DEFAULT_CLAMSCAN_TIMEOUT);
 
     let mut file = tempfile::Builder::new()
         .prefix("greenmods-upload-")
@@ -134,13 +152,33 @@ fn scan_with_clamav(bytes: &[u8]) -> Option<bool> {
 
     file.write_all(bytes).ok()?;
 
-    let output = Command::new(scanner)
+    let mut child = Command::new(scanner)
         .arg("--no-summary")
         .arg(file.path())
-        .output()
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
         .ok()?;
+    let deadline = Instant::now() + timeout;
 
-    match output.status.code() {
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(200)),
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    };
+
+    match status.code() {
         Some(0) => Some(true),
         Some(1) => Some(false),
         _ => None,
@@ -206,6 +244,57 @@ fn has_unreal_pak_footer(bytes: &[u8]) -> bool {
     bytes[start..]
         .windows(UNREAL_PAK_MAGIC.len())
         .any(|window| window == UNREAL_PAK_MAGIC)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Cursor, Write};
+    use zip::{ZipWriter, write::SimpleFileOptions};
+
+    fn fake_pe_bytes() -> Vec<u8> {
+        let mut bytes = vec![0_u8; 0x100];
+        bytes[0..2].copy_from_slice(b"MZ");
+        bytes[0x3c..0x40].copy_from_slice(&(0x80_u32).to_le_bytes());
+        bytes[0x80..0x84].copy_from_slice(b"PE\0\0");
+        bytes
+    }
+
+    fn build_zip(entries: &[(&str, &[u8])]) -> Vec<u8> {
+        let mut cursor = Cursor::new(Vec::new());
+
+        {
+            let mut writer = ZipWriter::new(&mut cursor);
+            let options = SimpleFileOptions::default();
+
+            for (name, payload) in entries {
+                writer.start_file(*name, options).unwrap();
+                writer.write_all(payload).unwrap();
+            }
+
+            writer.finish().unwrap();
+        }
+
+        cursor.into_inner()
+    }
+
+    #[test]
+    fn allows_archive_dlls() {
+        let zip = build_zip(&[("mod/example.dll", &fake_pe_bytes())]);
+        assert!(verify_upload(bytes::Bytes::from(zip)));
+    }
+
+    #[test]
+    fn allows_archive_exes() {
+        let zip = build_zip(&[("mod/example.exe", &fake_pe_bytes())]);
+        assert!(verify_upload(bytes::Bytes::from(zip)));
+    }
+
+    #[test]
+    fn blocks_archive_scripts() {
+        let zip = build_zip(&[("mod/example.ps1", b"Write-Host 'hello'")]);
+        assert!(!verify_upload(bytes::Bytes::from(zip)));
+    }
 }
 
 fn has_mixed_bytes(bytes: &[u8]) -> bool {

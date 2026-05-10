@@ -46,6 +46,24 @@
                     <Icon icon="tabler:search" height="24" />
                     <span>{$_("search.browse")}</span>
                 </a>
+
+                <a
+                    href="/one"
+                    class="btn-primary transition-duration-300 variant-soft-primary btn hover:variant-filled-secondary mr-4 flex flex-row items-center justify-start outline-none transition-all"
+                    onclick={closeDrawer}
+                >
+                    <Icon icon="tabler:anchor" height="24" />
+                    <span>Subnautica 1 Library</span>
+                </a>
+
+                <a
+                    href="/zero"
+                    class="btn-primary transition-duration-300 variant-soft-primary btn hover:variant-filled-secondary mr-4 flex flex-row items-center justify-start outline-none transition-all"
+                    onclick={closeDrawer}
+                >
+                    <Icon icon="tabler:snowflake" height="24" />
+                    <span>Below Zero Library</span>
+                </a>
             </div>
         </div>
     {/if}

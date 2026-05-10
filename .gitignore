@@ -40,6 +40,11 @@ config.astro.pkl
 .minio
 .meili
 .otel-lgtm
+.local/
+.local/nexusmods-playwright-profile/
+.local/nexus-upload-permissions*.txt
+.local/nexus-upload-permissions*.jsonl
+.local/subnautica-one-import*.jsonl
 
 # Dev
 docker-compose.yml

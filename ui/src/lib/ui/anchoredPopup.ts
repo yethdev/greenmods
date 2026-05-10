@@ -1,8 +1,17 @@
-// Copied and modified from
-// https://github.com/skeletonlabs/skeleton/blob/c96634a93dff4aa19340aae68f59261a096f682e/packages/skeleton/src/lib/utilities/Popup/popup.ts
-
 import { storePopup, type PopupSettings } from "@skeletonlabs/skeleton";
 import { get } from "svelte/store";
+
+type PopupPositionResult = {
+    x: number;
+    y: number;
+    placement: string;
+    middlewareData: {
+        arrow?: {
+            x?: number;
+            y?: number;
+        };
+    };
+};
 
 export function anchoredPopup(
     triggerNode: HTMLElement,
@@ -25,7 +34,7 @@ export function anchoredPopup(
     // Local State
     const popupState = {
         open: false,
-        autoUpdateCleanup: () => { },
+        autoUpdateCleanup: () => {},
     };
 
     const focusableAllowedList =
@@ -122,7 +131,7 @@ export function anchoredPopup(
                 // Implement optional middleware
                 ...optionalMiddleware,
             ],
-        }).then(({ x, y, placement, middlewareData }: any) => {
+        }).then(({ x, y, placement, middlewareData }: PopupPositionResult) => {
             Object.assign(elemPopup.style, {
                 left: `${x}px`,
                 top: `${y}px`,
@@ -130,23 +139,24 @@ export function anchoredPopup(
 
             // Handle Arrow Placement:
             // https://floating-ui.com/docs/arrow
-            if (elemArrow) {
+            if (elemArrow && middlewareData.arrow) {
                 const { x: arrowX, y: arrowY } = middlewareData.arrow;
 
-                // @ts-expect-error implicit any
-                const staticSide = {
+                const staticSide = (
+                    {
                     top: "bottom",
                     right: "left",
                     bottom: "top",
                     left: "right",
-                }[placement.split("-")[0]];
+                    } as Record<string, string>
+                )[placement.split("-")[0]];
 
                 Object.assign(elemArrow.style, {
                     left: arrowX != null ? `${arrowX}px` : "",
                     top: arrowY != null ? `${arrowY}px` : "",
                     right: "",
                     bottom: "",
-                    [staticSide]: "-4px",
+                    [staticSide ?? "top"]: "-4px",
                 });
             }
         });
@@ -208,11 +218,15 @@ export function anchoredPopup(
         if (!triggerNode.contains(event.target as Node)) close();
     }
 
-    function onWindowClick(event: MouseEvent & { target?: any }): void {
+    function onWindowClick(event: MouseEvent): void {
+        const target = event.target;
+
+        if (!(target instanceof Node)) return;
+
         // Return if the popup is not yet open
         if (popupState.open === false) return;
         // Return if click is the trigger element
-        if (triggerNode.contains(event.target)) return;
+        if (triggerNode.contains(target)) return;
         // Check with absolute positioning if it's outside.
         if (elemPopup) {
             const size = elemPopup.getBoundingClientRect();
@@ -227,7 +241,7 @@ export function anchoredPopup(
             }
         }
         // If click it outside the popup
-        if (elemPopup && !elemPopup.contains(event.target)) {
+        if (elemPopup && !elemPopup.contains(target)) {
             const selection = window.getSelection();
 
             if (selection && selection.toString().length == 0) {
@@ -243,7 +257,7 @@ export function anchoredPopup(
         if (closeQueryString === "") return;
         const closableMenuElements = elemPopup?.querySelectorAll(closeQueryString);
         closableMenuElements?.forEach((elem) => {
-            if (elem.contains(event.target)) close();
+            if (elem.contains(target)) close();
         });
     }
 

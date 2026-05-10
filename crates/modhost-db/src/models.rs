@@ -28,6 +28,12 @@ pub type UserToken = user_tokens::Model;
 /// A project.
 pub type Project = projects::Model;
 
+/// A project collection.
+pub type ProjectCollection = project_collections::Model;
+
+/// A repository sync configuration for a project.
+pub type ProjectRepoSync = project_repo_syncs::Model;
+
 /// A project version.
 pub type ProjectVersion = project_versions::Model;
 
@@ -100,6 +106,15 @@ pub struct ProjectData {
     /// An optional link to the project's wiki.
     pub wiki: Option<String>,
 
+    /// Optional FAQ content synced from the repository.
+    pub faq: Option<String>,
+
+    /// Optional markdown for external links synced from the repository.
+    pub repo_links: Option<String>,
+
+    /// Optional install metadata for manager-style installers.
+    pub install_json: Option<String>,
+
     /// The date the project was created.
     pub created_at: NaiveDateTime,
 
@@ -120,6 +135,80 @@ pub struct ProjectData {
 
     /// A list of tags for this project.
     pub tags: Vec<String>,
+
+    /// Public GitHub sync metadata for this project.
+    pub repo_sync: Option<PublicProjectRepoSync>,
+}
+
+/// Public-facing GitHub sync metadata for a project.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, ToResponse)]
+pub struct PublicProjectRepoSync {
+    /// The GitHub repository owner.
+    pub repo_owner: String,
+
+    /// The GitHub repository name.
+    pub repo_name: String,
+
+    /// The default branch tracked for content sync.
+    pub default_branch: Option<String>,
+
+    /// Whether README syncing is enabled.
+    pub sync_readme: bool,
+
+    /// Whether release syncing is enabled.
+    pub sync_releases: bool,
+
+    /// Whether FAQ syncing is enabled.
+    pub sync_faq: bool,
+
+    /// Whether external links syncing is enabled.
+    pub sync_links: bool,
+
+    /// The most recent successful push sync time.
+    pub last_push_sync_at: Option<NaiveDateTime>,
+
+    /// The most recent successful release sync time.
+    pub last_release_sync_at: Option<NaiveDateTime>,
+
+    /// The last sync error, if any.
+    pub last_error: Option<String>,
+}
+
+/// A collection with its owner and projects.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, ToResponse)]
+pub struct ProjectCollectionData {
+    /// The collection ID.
+    pub id: i32,
+
+    /// The collection owner.
+    pub owner: User,
+
+    /// The collection slug.
+    pub slug: String,
+
+    /// The collection name.
+    pub name: String,
+
+    /// The collection summary.
+    pub description: String,
+
+    /// Markdown content for the collection page.
+    pub readme: String,
+
+    /// Ordered IDs of projects in the collection.
+    pub project_ids: Vec<i32>,
+
+    /// Expanded project data for the collection.
+    pub projects: Vec<ProjectData>,
+
+    /// Visibility of the collection.
+    pub visibility: ProjectVisibility,
+
+    /// The creation time.
+    pub created_at: NaiveDateTime,
+
+    /// The last update time.
+    pub updated_at: NaiveDateTime,
 }
 
 /// A manifest for a project.
@@ -169,6 +258,9 @@ impl AsProjectData for Project {
             source: self.source,
             issues: self.issues,
             wiki: self.wiki,
+            faq: self.faq,
+            repo_links: self.repo_links,
+            install_json: self.install_json,
             created_at: self.created_at,
             updated_at: self.updated_at,
             downloads: self.downloads,
@@ -176,6 +268,24 @@ impl AsProjectData for Project {
             license: self.license,
             tags: self.tags,
             authors,
+            repo_sync: None,
+        }
+    }
+}
+
+impl From<ProjectRepoSync> for PublicProjectRepoSync {
+    fn from(value: ProjectRepoSync) -> Self {
+        Self {
+            repo_owner: value.repo_owner,
+            repo_name: value.repo_name,
+            default_branch: value.default_branch,
+            sync_readme: value.sync_readme,
+            sync_releases: value.sync_releases,
+            sync_faq: value.sync_faq,
+            sync_links: value.sync_links,
+            last_push_sync_at: value.last_push_sync_at,
+            last_release_sync_at: value.last_release_sync_at,
+            last_error: value.last_error,
         }
     }
 }
@@ -192,6 +302,9 @@ impl ProjectData {
             source: self.source,
             issues: self.issues,
             wiki: self.wiki,
+            faq: self.faq,
+            repo_links: self.repo_links,
+            install_json: self.install_json,
             created_at: self.created_at,
             updated_at: self.updated_at,
             downloads: self.downloads,

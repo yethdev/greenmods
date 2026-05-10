@@ -3,6 +3,7 @@
 use axum::{
     Router,
     body::Body,
+    extract::DefaultBodyLimit,
     http::StatusCode,
     response::Response,
     routing::{delete, get, patch, put},
@@ -24,7 +25,10 @@ pub mod update;
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list::list_handler))
-        .route("/", put(create::create_handler))
+        .route(
+            "/",
+            put(create::create_handler).layer(DefaultBodyLimit::max(512 * 1024 * 1024)),
+        )
         .route("/latest", get(latest::latest_handler))
         .route("/{version}", get(info::info_handler))
         .route("/{version}", patch(update::update_handler))

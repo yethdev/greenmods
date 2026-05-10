@@ -8,6 +8,18 @@ export interface PopupControls {
     destroy: () => void;
 }
 
+type PopupPositionResult = {
+    x: number;
+    y: number;
+    placement: string;
+    middlewareData: {
+        arrow?: {
+            x?: number;
+            y?: number;
+        };
+    };
+};
+
 export function elementPopup(node: HTMLElement, args: PopupSettings): PopupControls {
     // Floating UI Modules
     const {
@@ -116,28 +128,29 @@ export function elementPopup(node: HTMLElement, args: PopupSettings): PopupContr
                 // Implement optional middleware
                 ...optionalMiddleware,
             ],
-        }).then(({ x, y, placement, middlewareData }: any) => {
+        }).then(({ x, y, placement, middlewareData }: PopupPositionResult) => {
             Object.assign(elemPopup.style, {
                 left: `${x}px`,
                 top: `${y}px`,
             });
             // Handle Arrow Placement:
             // https://floating-ui.com/docs/arrow
-            if (elemArrow) {
+            if (elemArrow && middlewareData.arrow) {
                 const { x: arrowX, y: arrowY } = middlewareData.arrow;
-                // @ts-expect-error implicit any
-                const staticSide = {
+                const staticSide = (
+                    {
                     top: "bottom",
                     right: "left",
                     bottom: "top",
                     left: "right",
-                }[placement.split("-")[0]];
+                    } as Record<string, string>
+                )[placement.split("-")[0]];
                 Object.assign(elemArrow.style, {
                     left: arrowX != null ? `${arrowX}px` : "",
                     top: arrowY != null ? `${arrowY}px` : "",
                     right: "",
                     bottom: "",
-                    [staticSide]: "-4px",
+                    [staticSide ?? "top"]: "-4px",
                 });
             }
         });
@@ -193,14 +206,18 @@ export function elementPopup(node: HTMLElement, args: PopupSettings): PopupContr
         popupState.open === false ? open() : close();
     };
 
-    const onWindowClick = (event: any) => {
+    const onWindowClick = (event: MouseEvent) => {
+        const target = event.target;
+
+        if (!(target instanceof Node)) return;
+
         // Return if the popup is not yet open
         if (popupState.open === false) return;
         // Return if click is the trigger element
-        if (node.contains(event.target)) return;
+        if (node.contains(target)) return;
 
         // If click it outside the popup
-        if (elemPopup && elemPopup.contains(event.target) === false) {
+        if (elemPopup && elemPopup.contains(target) === false) {
             close();
             return;
         }
@@ -215,7 +232,7 @@ export function elementPopup(node: HTMLElement, args: PopupSettings): PopupContr
         const closableMenuElements = elemPopup?.querySelectorAll(closeQueryString);
 
         closableMenuElements?.forEach((elem) => {
-            if (elem.contains(event.target)) close();
+            if (elem.contains(target)) close();
         });
     };
 

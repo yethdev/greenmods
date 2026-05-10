@@ -3,7 +3,7 @@
     import { getModalStore, getToastStore } from "@skeletonlabs/skeleton";
     import { goto } from "$app/navigation";
     import { currentProject } from "$lib/state";
-    import { client } from "$lib/api";
+    import { client, invalidateProjectPreviewImage } from "$lib/api";
     import { unwrap } from "@modhost/api";
 
     const modals = getModalStore();
@@ -42,6 +42,7 @@
         const { imageId } = $modals[0].meta;
 
         unwrap(await client.project($currentProject.id).gallery().image(imageId).delete());
+        invalidateProjectPreviewImage($currentProject.id);
 
         loading = false;
         modals.close();

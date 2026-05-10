@@ -35,6 +35,12 @@ pub struct Model {
     pub issues: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub wiki: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub faq: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub repo_links: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub install_json: Option<String>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
     pub downloads: i32,
@@ -54,6 +60,8 @@ pub enum Relation {
     ModerationQueue,
     #[sea_orm(has_many = "super::project_authors::Entity")]
     ProjectAuthors,
+    #[sea_orm(has_one = "super::project_repo_syncs::Entity")]
+    ProjectRepoSyncs,
     #[sea_orm(has_many = "super::project_versions::Entity")]
     ProjectVersions,
 }
@@ -79,6 +87,12 @@ impl Related<super::moderation_queue::Entity> for Entity {
 impl Related<super::project_authors::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ProjectAuthors.def()
+    }
+}
+
+impl Related<super::project_repo_syncs::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ProjectRepoSyncs.def()
     }
 }
 

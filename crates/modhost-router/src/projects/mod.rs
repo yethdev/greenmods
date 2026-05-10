@@ -4,6 +4,7 @@ pub mod authors;
 pub mod create;
 pub mod delete;
 pub mod gallery;
+pub mod github;
 pub mod info;
 pub mod search;
 pub mod update;
@@ -34,6 +35,7 @@ pub fn router(state: AppState) -> Router<AppState> {
         .route("/{id}", delete(delete::delete_handler))
         .nest("/{id}/authors", authors::router(state.clone()))
         .nest("/{id}/gallery", gallery::router(state.clone()))
+        .nest("/{id}/github", github::router(state.clone()))
         .nest("/{id}/versions", versions::router(state.clone()))
         .with_state(state)
 }
@@ -164,6 +166,7 @@ fn validate_project_tags(tags: &[String], state: &AppState) -> Option<String> {
     nest(
         (path = "/{id}/authors", api = authors::ProjectAuthorsApi),
         (path = "/{id}/gallery", api = gallery::ProjectGalleryApi),
+        (path = "/{id}/github", api = github::ProjectGitHubApi),
         (path = "/{id}/versions", api = versions::ProjectVersionsApi),
     ),
 )]

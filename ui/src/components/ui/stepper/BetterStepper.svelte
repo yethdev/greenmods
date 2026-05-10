@@ -1,5 +1,3 @@
-<!-- Taken and modified from https://github.com/skeletonlabs/skeleton/blob/c96634a93dff4aa19340aae68f59261a096f682e/packages/skeleton/src/lib/components/Stepper/Stepper.svelte -->
-
 <script lang="ts" module>
     import { fade } from "svelte/transition";
     import { prefersReducedMotionStore } from "@skeletonlabs/skeleton";
@@ -41,24 +39,6 @@
         start?: number;
         /** Set the justification for the step navigation buttons. */
         justify?: CssClasses;
-        // /** Provide arbitrary classes to style the back button. */
-        // buttonBack?: CssClasses;
-        // /** Set the type of the back button. */
-        // buttonBackType?: StepperButton;
-        // /** Provide the HTML label content for the back button. */
-        // buttonBackLabel?: string;
-        // /** Provide arbitrary classes to style the next button. */
-        // buttonNext?: CssClasses;
-        // /** Set the type of the next button. */
-        // buttonNextType?: StepperButton;
-        // /** Provide the HTML label content for the next button. */
-        // buttonNextLabel?: string;
-        // /** Provide arbitrary classes to style the complete button. */
-        // buttonComplete?: CssClasses;
-        // /** Set the type of the complete button. */
-        // buttonCompleteType?: StepperButton;
-        // /** Provide the HTML label content for the complete button. */
-        // buttonCompleteLabel?: string;
         buttonBack?: Snippet<[boolean, () => void]>;
         buttonNext?: Snippet<[boolean, () => void]>;
         buttonComplete?: Snippet<[boolean, () => void]>;
@@ -77,13 +57,13 @@
         /** Transition params provided to `transitionOut`. */
         transitionOutParams?: TransitionParams<TransitionOut>;
         /** Fires when the NEXT button is pressed per step. */
-        next?: (event: StepperEvent["next"]) => any;
+        next?: (event: StepperEvent["next"]) => void | Promise<void>;
         /** Fires when a next/previous step occurs. */
-        step?: (event: StepperEvent["step"]) => any;
+        step?: (event: StepperEvent["step"]) => void | Promise<void>;
         /** Fires when the BACK button is pressed per step. */
-        back?: (event: StepperEvent["back"]) => any;
+        back?: (event: StepperEvent["back"]) => void | Promise<void>;
         /** Fires when the COMPLETE button is pressed. */
-        complete?: (event: StepperEvent["complete"]) => any;
+        complete?: (event: StepperEvent["complete"]) => void | Promise<void>;
     }
 
     const {
@@ -95,15 +75,6 @@
         border = "border-surface-400-500-token",
         start = 0,
         justify = "justify-between",
-        // buttonBack = "veriant-ghost",
-        // buttonBackType = "button",
-        // buttonBackLabel = "&larr; Back",
-        // buttonNext = "variant-filled",
-        // buttonNextType = "button",
-        // buttonNextLabel = "Next &rarr;",
-        // buttonComplete = "variant-filled-primary",
-        // buttonCompleteType = "button",
-        // buttonCompleteLabel = "Complete",
         buttonBack = defaultButtonBack,
         buttonNext = defaultButtonNext,
         buttonComplete = defaultButtonComplete,
@@ -156,18 +127,6 @@
         setContext("onNext", onNext);
         setContext("onBack", onBack);
         setContext("onComplete", onComplete);
-        // ---
-        // setContext("buttonBack", buttonBack);
-        // setContext("buttonBackType", buttonBackType);
-        // setContext("buttonBackLabel", buttonBackLabel);
-        // // ---
-        // setContext("buttonNext", buttonNext);
-        // setContext("buttonNextType", buttonNextType);
-        // setContext("buttonNextLabel", buttonNextLabel);
-        // // ---
-        // setContext("buttonComplete", buttonComplete);
-        // setContext("buttonCompleteType", buttonCompleteType);
-        // setContext("buttonCompleteLabel", buttonCompleteLabel);
         setContext("buttonBack", buttonBack);
         setContext("buttonNext", buttonNext);
         setContext("buttonComplete", buttonComplete);

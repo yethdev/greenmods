@@ -1,6 +1,6 @@
 <script lang="ts">
     import EditContainer from "$components/ui/edit/EditContainer.svelte";
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import type { Snippet } from "svelte";
     import { page } from "$app/stores";
     import { currentProject, editLoadingState } from "$lib/state";
@@ -22,11 +22,11 @@
             $editLoadingState = "failed";
         }
 
-        setTimeout(() => {
-            if (!ok) {
-                goto(`/p/${id}`); // TODO: This is a really bad way of doing this
-            }
-        }, 500);
+        await tick();
+
+        if (!ok) {
+            goto(`/p/${id}`);
+        }
     });
 
     beforeNavigate(({ to }) => {
@@ -36,12 +36,12 @@
         }
     });
 
-    const { data, children }: { data: any; children: Snippet } = $props();
+    const { children }: { children: Snippet } = $props();
 </script>
 
 {#if ok}
     <EditContainer>
-        {#key data.href}
+        {#key $page.url.href}
             {@render children?.()}
         {/key}
     </EditContainer>

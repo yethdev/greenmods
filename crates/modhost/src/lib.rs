@@ -73,11 +73,6 @@ impl ModHost {
         run_migrations(&db).await?;
         state.search.ensure_setup().await?;
 
-        info!("Indexing projects...");
-
-        // We should run this on startup, it ensures everything gets indexed if it was missed.
-        state.search.index_projects(&db).await?;
-
         info!("Creating glue...");
 
         let glue = make_glue(&config).await?;
@@ -140,7 +135,19 @@ impl ModHost {
     pub async fn run(self) -> Result<()> {
         info!("Starting worker...");
 
-        run_worker(self.pool);
+        run_worker(self.pool.clone());
+
+        let search = self.state.search.clone();
+        let pool = self.pool.clone();
+        tokio::spawn(async move {
+            info!("Starting background search reindex...");
+
+            if let Err(error) = search.index_projects(&pool).await {
+                error!(?error, "Background search reindex failed");
+            } else {
+                info!("Background search reindex completed");
+            }
+        });
 
         info!("Binding listener...");
 

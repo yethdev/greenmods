@@ -1,8 +1,5 @@
-// Taken and modified from https://github.com/skeletonlabs/skeleton/blob/c96634a93dff4aa19340aae68f59261a096f682e/packages/skeleton/src/lib/internal/transitions.ts
-
 import type { TransitionConfig } from "svelte/transition";
 
-// Transitions ---
 export function dynamicTransition<T extends Transition>(
     node: Element,
     dynParams: DynamicTransitionParams<T>,
@@ -12,7 +9,9 @@ export function dynamicTransition<T extends Transition>(
     if (enabled) return transition(node, params);
 
     // it's better to just set the `duration` to 0 to prevent flickering
-    if ("duration" in params) return transition(node, { duration: 0 });
+    if (params && typeof params === "object" && "duration" in params) {
+        return transition(node, { duration: 0 });
+    }
 
     // if the transition doesn't provide a `duration` prop, then we'll just return this as a last resort
     return { duration: 0 };
@@ -24,6 +23,5 @@ type DynamicTransitionParams<T extends Transition> = {
     enabled: boolean;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Transition = (node: Element, params?: any) => TransitionConfig;
+export type Transition = (node: Element, params?: unknown) => TransitionConfig;
 export type TransitionParams<T extends Transition> = Parameters<T>[1];

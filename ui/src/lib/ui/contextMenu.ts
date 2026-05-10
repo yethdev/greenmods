@@ -15,7 +15,7 @@ export type ContextMenuItem =
           type: "ITEM";
           label: string;
           icon?: ConstructorOfATypedSvelteComponent;
-          action: (ev: MouseEvent) => any | Promise<any>;
+                    action: (ev: MouseEvent) => void | Promise<void> | unknown | Promise<unknown>;
       }
     | { type: "SEPARATOR"; header?: string };
 // | { type: 'TOGGLE'; label: string; icon?: ConstructorOfATypedSvelteComponent; action: () => void, checked: boolean };

@@ -1,4 +1,7 @@
 import {
+    type ProjectCollection,
+    type ProjectCollectionInit,
+    type ProjectCollectionPatch,
     ErrorResponse,
     serializeFacets,
     type Facet,
@@ -8,6 +11,8 @@ import {
     type GameVersion,
     type ModLoader,
     type ProjectInit,
+    type ProjectRepoSyncAdminData,
+    type ProjectRepoSyncPatch,
     type ProjectVersion,
     type ProjectVersionInit,
     type SearchResults,
@@ -17,6 +22,12 @@ import {
     type User,
 } from "./models";
 import type { AdminStats } from "./models/admin";
+
+const GET_REQUEST_TIMEOUT_MS = 12_000;
+const RETRYABLE_STATUS_CODES = new Set([408, 429, 502, 503, 504]);
+const RETRY_BACKOFF_MS = 250;
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * The base API client.
@@ -47,7 +58,7 @@ export class Client {
         return this._token;
     }
 
-    private _fetch(
+    private async _fetch(
         requiresAuth: boolean = false,
         method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
         path: string,
@@ -55,6 +66,8 @@ export class Client {
         body?: Blob | FormData | object | string,
     ) {
         const realPath = path.startsWith("/") ? path.substring(1) : path;
+        const isGet = method == "GET";
+        const attempts = isGet ? 2 : 1;
 
         const data =
             !(body instanceof FormData) && typeof body === "object" ? JSON.stringify(body) : body;
@@ -67,16 +80,54 @@ export class Client {
             fullHeaders["Authorization"] = `Bearer ${this._token}`;
         }
 
+        if (requiresAuth && !this._token) {
+            throw new Error("This request requires an auth token.");
+        }
+
         if (!(body instanceof FormData) && !(body instanceof Blob) && typeof body === "object") {
             fullHeaders["Content-Type"] = "application/json";
         }
 
-        return fetch(`${this._baseUrl}/${realPath}`, {
-            method: method,
-            body: data,
-            credentials: "same-origin",
-            headers: fullHeaders,
-        });
+        let lastError: unknown = undefined;
+
+        for (let attempt = 0; attempt < attempts; attempt++) {
+            const controller = new AbortController();
+            const timeout = isGet
+                ? setTimeout(() => controller.abort(), GET_REQUEST_TIMEOUT_MS)
+                : undefined;
+
+            try {
+                const response = await fetch(`${this._baseUrl}/${realPath}`, {
+                    method: method,
+                    body: data,
+                    credentials: "same-origin",
+                    headers: fullHeaders,
+                    signal: controller.signal,
+                });
+
+                if (
+                    !isGet ||
+                    !RETRYABLE_STATUS_CODES.has(response.status) ||
+                    attempt == attempts - 1
+                ) {
+                    return response;
+                }
+
+                lastError = new Error(`Retryable response status: ${response.status}`);
+            } catch (err: unknown) {
+                lastError = err;
+
+                if (!isGet || attempt == attempts - 1) {
+                    throw err;
+                }
+            } finally {
+                if (timeout != undefined) clearTimeout(timeout);
+            }
+
+            await delay(RETRY_BACKOFF_MS * (attempt + 1));
+        }
+
+        throw (lastError ?? new Error("Request failed."));
     }
 
     private async _jsonFetch<T>(
@@ -112,6 +163,34 @@ export class Client {
 
     public async getUserProjects(id: number | string) {
         return await this._jsonFetch<FullProject[]>(false, "GET", `/users/${id}/projects`);
+    }
+
+    // =================== COLLECTIONS ===================
+
+    public async listCollections() {
+        return await this._jsonFetch<ProjectCollection[]>(false, "GET", "/collections");
+    }
+
+    public async getCollection(id: string | number) {
+        return await this._jsonFetch<ProjectCollection>(false, "GET", `/collections/${id}`);
+    }
+
+    public async createCollection(data: ProjectCollectionInit) {
+        return await this._jsonFetch<ProjectCollection>(true, "PUT", "/collections", {}, {
+            ...data,
+            projects: data.projects.map((project) => project.toString()),
+        });
+    }
+
+    public async updateCollection(id: string | number, data: ProjectCollectionPatch) {
+        return await this._jsonFetch<ProjectCollection>(true, "PATCH", `/collections/${id}`, {}, {
+            ...data,
+            projects: data.projects?.map((project) => project.toString()),
+        });
+    }
+
+    public async deleteCollection(id: string | number) {
+        return await this._fetch(true, "DELETE", `/collections/${id}`);
     }
 
     // =================== PROJECTS ===================
@@ -184,6 +263,24 @@ export class Client {
             `/projects/${id}/authors`,
             {},
             author.toString(),
+        );
+    }
+
+    public async getProjectGitHubSync(id: string | number) {
+        return await this._jsonFetch<ProjectRepoSyncAdminData>(
+            true,
+            "GET",
+            `/projects/${id}/github`,
+        );
+    }
+
+    public async updateProjectGitHubSync(id: string | number, data: ProjectRepoSyncPatch) {
+        return await this._jsonFetch<ProjectRepoSyncAdminData>(
+            true,
+            "PATCH",
+            `/projects/${id}/github`,
+            {},
+            data,
         );
     }
 
@@ -312,11 +409,14 @@ export class Client {
         const form = new FormData();
 
         form.set("name", data.name);
-        form.set("file_name", data.file_name);
         form.set("version_number", data.version_number.toString());
         form.set("game_versions", data.game_versions.join(","));
         form.set("loaders", data.loaders.join(","));
-        form.set("file", data.file);
+
+        if (data.file_name && data.file) {
+            form.set("file_name", data.file_name);
+            form.set("file", data.file);
+        }
 
         if (data.changelog) form.set("changelog", data.changelog);
 
